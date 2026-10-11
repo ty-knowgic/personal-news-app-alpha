@@ -1,16 +1,25 @@
+import { createHash } from 'node:crypto';
 import Parser from 'rss-parser';
 import type { FeedSource, NewsFilters, NewsItem } from './types.js';
 
 const parser = new Parser();
 
+// 一部の公式サイト（FRB など）は簡易的な User-Agent を拒否するため、一般的なブラウザの値を送る
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+const FETCH_TIMEOUT_MS = 8000;
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const ITEMS_PER_FEED = 10;
+
+// 2026-10 時点で取得できることを確認済みのフィード
 export const officialFeeds: FeedSource[] = [
   {
     category: '政治',
     subgroup: '日本',
     sourceName: '首相官邸',
     sourceUrl: 'https://www.kantei.go.jp/',
-    feedUrl: 'https://www.kantei.go.jp/jp/rss/rss.xml',
-    label: '首相官邸 公式発表'
+    feedUrl: 'https://www.kantei.go.jp/index-jnews.rdf',
+    label: '首相官邸 新着情報'
   },
   {
     category: '政治',
@@ -18,55 +27,39 @@ export const officialFeeds: FeedSource[] = [
     sourceName: '総務省',
     sourceUrl: 'https://www.soumu.go.jp/',
     feedUrl: 'https://www.soumu.go.jp/news.rdf',
-    label: '総務省 ニュース'
+    label: '総務省 報道資料'
   },
   {
     category: '経済',
     subgroup: '日本',
     sourceName: '日本銀行',
     sourceUrl: 'https://www.boj.or.jp/',
-    feedUrl: 'https://www.boj.or.jp/xml/rss.xml',
-    label: '日本銀行 公式発表'
+    feedUrl: 'https://www.boj.or.jp/rss/whatsnew.xml',
+    label: '日本銀行 新着情報'
   },
   {
     category: '経済',
     subgroup: '日本',
     sourceName: '財務省',
     sourceUrl: 'https://www.mof.go.jp/',
-    feedUrl: 'https://www.mof.go.jp/english/news/rss.xml',
-    label: '財務省 ニュース'
+    feedUrl: 'https://www.mof.go.jp/news.rss',
+    label: '財務省 新着情報'
   },
   {
     category: '経済',
     subgroup: '日本',
     sourceName: '経済産業省',
     sourceUrl: 'https://www.meti.go.jp/',
-    feedUrl: 'https://www.meti.go.jp/rss.xml',
-    label: '経済産業省 ニュース'
+    feedUrl: 'https://www.meti.go.jp/ml_index_release_atom.xml',
+    label: '経済産業省 ニュースリリース'
   },
   {
     category: '社会',
     subgroup: '日本',
     sourceName: '厚生労働省',
     sourceUrl: 'https://www.mhlw.go.jp/',
-    feedUrl: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/rss/news.xml',
-    label: '厚生労働省 ニュース'
-  },
-  {
-    category: '国際',
-    subgroup: '海外',
-    sourceName: '国連',
-    sourceUrl: 'https://news.un.org/',
-    feedUrl: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml',
-    label: 'UN News'
-  },
-  {
-    category: '経済',
-    subgroup: '海外',
-    sourceName: 'IMF',
-    sourceUrl: 'https://www.imf.org/',
-    feedUrl: 'https://www.imf.org/en/rss/IMF-Press-Releases?format=rss',
-    label: 'IMF Press Releases'
+    feedUrl: 'https://www.mhlw.go.jp/stf/news.rdf',
+    label: '厚生労働省 新着情報'
   },
   {
     category: '経済',
@@ -74,18 +67,35 @@ export const officialFeeds: FeedSource[] = [
     sourceName: 'FRB',
     sourceUrl: 'https://www.federalreserve.gov/',
     feedUrl: 'https://www.federalreserve.gov/feeds/press_all.xml',
-    label: 'Federal Reserve'
+    label: 'Federal Reserve Press Releases'
+  },
+  {
+    category: '経済',
+    subgroup: '海外',
+    sourceName: 'ECB',
+    sourceUrl: 'https://www.ecb.europa.eu/',
+    feedUrl: 'https://www.ecb.europa.eu/rss/press.html',
+    label: 'ECB Press'
   },
   {
     category: '国際',
     subgroup: '海外',
     sourceName: 'WHO',
     sourceUrl: 'https://www.who.int/',
-    feedUrl: 'https://www.who.int/feeds/entity/news/en/rss.xml',
+    feedUrl: 'https://www.who.int/rss-feeds/news-english.xml',
     label: 'WHO News'
+  },
+  {
+    category: '政治',
+    subgroup: '海外',
+    sourceName: '米国務省',
+    sourceUrl: 'https://www.state.gov/',
+    feedUrl: 'https://www.state.gov/rss-feed/press-releases/feed/',
+    label: 'U.S. Department of State Press Releases'
   }
 ];
 
+// 全フィードの取得に失敗した場合のみ表示するサンプル記事（実在の発表ではない）
 const fallbackArticles: Omit<NewsItem, 'id'>[] = [
   {
     category: '経済',
@@ -95,9 +105,10 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     publishedAt: '2026-10-11T09:00:00+09:00',
     sourceName: '日本銀行',
     sourceUrl: 'https://www.boj.or.jp/',
-    feedUrl: 'https://www.boj.or.jp/xml/rss.xml',
+    feedUrl: 'https://www.boj.or.jp/rss/whatsnew.xml',
     hashtags: ['#日本銀行', '#金利', '#金融政策'],
-    keywords: ['日本銀行', '金利', '金融政策']
+    keywords: ['日本銀行', '金利', '金融政策'],
+    isSample: true
   },
   {
     category: '政治',
@@ -107,9 +118,10 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     publishedAt: '2026-10-11T10:30:00+09:00',
     sourceName: '首相官邸',
     sourceUrl: 'https://www.kantei.go.jp/',
-    feedUrl: 'https://www.kantei.go.jp/jp/rss/rss.xml',
+    feedUrl: 'https://www.kantei.go.jp/index-jnews.rdf',
     hashtags: ['#首相官邸', '#政府', '#政策'],
-    keywords: ['首相官邸', '政府', '政策']
+    keywords: ['首相官邸', '政府', '政策'],
+    isSample: true
   },
   {
     category: '社会',
@@ -119,76 +131,39 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     publishedAt: '2026-10-11T11:15:00+09:00',
     sourceName: '厚生労働省',
     sourceUrl: 'https://www.mhlw.go.jp/',
-    feedUrl: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/rss/news.xml',
+    feedUrl: 'https://www.mhlw.go.jp/stf/news.rdf',
     hashtags: ['#厚生労働省', '#医療', '#健康'],
-    keywords: ['厚生労働省', '医療', '健康']
-  },
-  {
-    category: '国際',
-    subgroup: '海外',
-    title: '国連が人道・安全保障に関する公式発表を公開',
-    summary: '国連は人道・安全保障に関する公式発表を公開した。本文を根拠に事実を簡潔に整理している。',
-    publishedAt: '2026-10-11T12:05:00+09:00',
-    sourceName: '国連',
-    sourceUrl: 'https://news.un.org/',
-    feedUrl: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml',
-    hashtags: ['#国連', '#安全保障', '#人道'],
-    keywords: ['国連', '安全保障', '人道']
-  },
-  {
-    category: '経済',
-    subgroup: '海外',
-    title: 'IMFが経済見通しに関する声明を発表',
-    summary: 'IMFは経済見通しに関する声明を発表した。見通しと前提条件に関する記載を確認した。',
-    publishedAt: '2026-10-11T13:00:00+09:00',
-    sourceName: 'IMF',
-    sourceUrl: 'https://www.imf.org/',
-    feedUrl: 'https://www.imf.org/en/rss/IMF-Press-Releases?format=rss',
-    hashtags: ['#IMF', '#経済見通し', '#金融'],
-    keywords: ['IMF', '経済見通し', '金融']
+    keywords: ['厚生労働省', '医療', '健康'],
+    isSample: true
   }
 ];
 
 function trimSummary(value: string): string {
-  const normalized = value.replace(/\s+/g, ' ').trim();
+  const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   if (normalized.length <= 100) {
     return normalized;
   }
-  return `${normalized.slice(0, 97).trim()}…`;
+  return `${normalized.slice(0, 99).trim()}…`;
 }
 
 function normalizeTitle(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
-function buildHashtags(title: string, category: string, subgroup: string): string[] {
-  const tokens = title
-    .replace(/[、。！？]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(token => token.replace(/[()（）\[\]{}]/g, ''))
-    .filter(token => token.length > 1);
-
-  const keywordMap: Record<string, string[]> = {
-    経済: ['経済', '金融', '成長'],
-    社会: ['社会', '福祉', '医療'],
-    国際: ['国際', '国連', '外交'],
-    政治: ['政治', '政府', '政策']
-  };
-
-  const seed = [...(keywordMap[category] ?? []), ...tokens.slice(0, 3)];
-  const unique = [...new Set(seed.map(item => `#${item}`))].slice(0, 3);
-
-  if (unique.length === 0) {
-    return [`#${subgroup}`, `#${category}`];
-  }
-
-  return unique;
+// ハッシュタグは記事に含まれる事実（発信元・カテゴリ・地域）のみから作り、推測した語は加えない
+function buildHashtags(source: FeedSource): string[] {
+  return [...new Set([source.sourceName, source.category, source.subgroup])]
+    .map(tag => `#${tag.replace(/\s+/g, '')}`)
+    .slice(0, 3);
 }
 
-function toNewsItem(entry: Omit<NewsItem, 'id'>, index: number): NewsItem {
+function makeId(key: string): string {
+  return createHash('sha1').update(key).digest('hex').slice(0, 16);
+}
+
+function toNewsItem(entry: Omit<NewsItem, 'id'>): NewsItem {
   return {
-    id: `${entry.category}-${entry.subgroup}-${index}-${Date.now()}`,
+    id: makeId(`${entry.sourceName}|${entry.sourceUrl}|${entry.title}`),
     ...entry,
     summary: trimSummary(entry.summary),
     hashtags: entry.hashtags.slice(0, 3),
@@ -196,61 +171,110 @@ function toNewsItem(entry: Omit<NewsItem, 'id'>, index: number): NewsItem {
   };
 }
 
+// 総務省のように Shift_JIS で配信されるフィードがあるため、XML 宣言の encoding を見てデコードする
+function decodeFeed(buffer: ArrayBuffer, contentType: string | null): string {
+  const head = new TextDecoder('ascii').decode(buffer.slice(0, 200));
+  const charset =
+    head.match(/encoding=["']([\w-]+)["']/i)?.[1] ??
+    contentType?.match(/charset=([\w-]+)/i)?.[1] ??
+    'utf-8';
+
+  try {
+    return new TextDecoder(charset).decode(buffer);
+  } catch {
+    return new TextDecoder('utf-8').decode(buffer);
+  }
+}
+
+function toIsoDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
   try {
-    const response = await fetch(source.feedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const response = await fetch(source.feedUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+    });
     if (!response.ok) {
+      console.warn(`[feed] ${source.sourceName}: HTTP ${response.status}`);
       return [];
     }
 
-    const xml = await response.text();
+    const xml = decodeFeed(await response.arrayBuffer(), response.headers.get('content-type'));
     const parsed = await parser.parseString(xml);
 
-    return (parsed.items ?? []).slice(0, 8).map((item, index) => {
-      const title = normalizeTitle(item.title ?? '公式発表');
-      const description = item.contentSnippet ?? item.content ?? title;
-      const summary = trimSummary(description || title);
-      const hashtags = buildHashtags(title, source.category, source.subgroup);
+    return (parsed.items ?? []).slice(0, ITEMS_PER_FEED).flatMap((item) => {
+      const title = normalizeTitle(item.title ?? '');
+      if (!title) return [];
 
-      return toNewsItem({
+      const description = item.contentSnippet ?? item.content ?? item.summary ?? '';
+      const publishedAt = toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date);
+      if (!publishedAt) return [];
+
+      return [toNewsItem({
         category: source.category,
         subgroup: source.subgroup,
         title,
-        summary,
-        publishedAt: item.isoDate ?? new Date().toISOString(),
+        summary: description === title ? '' : description,
+        publishedAt,
         sourceName: source.sourceName,
         sourceUrl: item.link ?? source.sourceUrl,
         feedUrl: source.feedUrl,
-        hashtags,
-        keywords: [source.category, source.subgroup, ...title.split(/\s+/).slice(0, 2)]
-      }, index);
+        hashtags: buildHashtags(source),
+        keywords: [source.sourceName, source.category, source.subgroup]
+      })];
     });
-  } catch {
+  } catch (error) {
+    console.warn(`[feed] ${source.sourceName}: ${(error as Error).message}`);
     return [];
   }
 }
 
-export async function loadNews(): Promise<NewsItem[]> {
+async function collectNews(): Promise<NewsItem[]> {
   const feedResults = await Promise.all(officialFeeds.map(fetchFeed));
   const collected = feedResults.flat();
 
   if (collected.length === 0) {
-    return fallbackArticles.map((article, index) => toNewsItem(article, index));
+    return fallbackArticles.map(toNewsItem);
   }
 
-  const merged = [...collected, ...fallbackArticles.map((article, index) => toNewsItem(article, index))];
   const deduped = new Map<string, NewsItem>();
-
-  for (const item of merged) {
-    const key = `${item.title}-${item.sourceName}`;
-    if (!deduped.has(key)) {
-      deduped.set(key, item);
+  for (const item of collected) {
+    if (!deduped.has(item.id)) {
+      deduped.set(item.id, item);
     }
   }
 
   return [...deduped.values()].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
+}
+
+let cache: { items: NewsItem[]; fetchedAt: number } | null = null;
+let inFlight: Promise<NewsItem[]> | null = null;
+
+export async function loadNews(): Promise<NewsItem[]> {
+  if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) {
+    return cache.items;
+  }
+
+  // 同時に来たリクエストで同じフィードを重複取得しない
+  inFlight ??= collectNews()
+    .then((items) => {
+      // サンプル記事しか得られなかった場合はキャッシュせず、次回再取得する
+      if (!items.every(item => item.isSample)) {
+        cache = { items, fetchedAt: Date.now() };
+      }
+      return items;
+    })
+    .finally(() => {
+      inFlight = null;
+    });
+
+  return inFlight;
 }
 
 export function listCategoryGroups() {
@@ -270,7 +294,7 @@ export async function getNews(filters: NewsFilters = {}) {
     const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
     const keyword = filters.keyword?.trim().toLowerCase();
     const byKeyword = keyword
-      ? [item.title, item.summary, ...item.keywords, ...item.hashtags].some(value =>
+      ? [item.title, item.summary, item.sourceName, ...item.keywords, ...item.hashtags].some(value =>
           value.toLowerCase().includes(keyword)
         )
       : true;

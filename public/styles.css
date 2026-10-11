@@ -202,3 +202,8 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.pill-sample {
+  background: #fff4e5;
+  color: #a35a00;
+}

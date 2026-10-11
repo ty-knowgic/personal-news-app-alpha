@@ -21,13 +21,18 @@ app.get('/api/categories', (_req, res) => {
 app.get('/api/news', async (req, res) => {
   const { category, subgroup, keyword } = req.query;
 
-  const result = await getNews({
-    category: typeof category === 'string' ? category : undefined,
-    subgroup: typeof subgroup === 'string' ? subgroup : undefined,
-    keyword: typeof keyword === 'string' ? keyword : undefined
-  });
+  try {
+    const result = await getNews({
+      category: typeof category === 'string' ? category : undefined,
+      subgroup: typeof subgroup === 'string' ? subgroup : undefined,
+      keyword: typeof keyword === 'string' ? keyword : undefined
+    });
 
-  res.json(result);
+    res.json(result);
+  } catch (error) {
+    console.error('[api/news]', error);
+    res.status(500).json({ error: 'ニュースの取得に失敗しました。' });
+  }
 });
 
 app.get('*', (_req, res) => {

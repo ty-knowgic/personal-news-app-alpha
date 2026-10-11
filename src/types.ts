@@ -22,6 +22,7 @@ export interface NewsItem {
   feedUrl: string;
   hashtags: string[];
   keywords: string[];
+  isSample?: boolean;
 }
 
 export interface NewsFilters {

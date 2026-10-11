@@ -2,47 +2,56 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Personal News App α</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="News" />
+    <title>Personal News</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand-wrap">
-        <div class="brand-mark">N</div>
-        <div>
-          <p class="eyebrow">Official-source news</p>
-          <h1>Personal News App α</h1>
-        </div>
+      <div class="topbar-row">
+        <button id="backButton" class="icon-button back-button" type="button" aria-label="一覧に戻る" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          <span>戻る</span>
+        </button>
+        <a id="brand" class="brand" href="#/">
+          <span class="brand-mark">N</span>
+          <span class="brand-name">Personal News</span>
+          <span class="brand-badge">α</span>
+        </a>
+        <button id="searchToggle" class="icon-button" type="button" aria-label="検索" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
+        </button>
       </div>
+
+      <div id="searchBar" class="search-bar" hidden>
+        <input id="keywordInput" type="search" placeholder="キーワード・#ハッシュタグで検索" enterkeyhint="search" autocomplete="off" />
+      </div>
+
+      <nav id="tabs" class="tabs" role="tablist" aria-label="カテゴリ"></nav>
     </header>
 
-    <main class="layout">
-      <aside class="sidebar">
-        <section class="panel">
-          <h2>検索</h2>
-          <input id="keywordInput" type="search" placeholder="キーワードで絞り込み" />
-          <label>
-            <span>カテゴリ</span>
-            <select id="categoryFilter">
-              <option value="">全カテゴリ</option>
-            </select>
-          </label>
-          <label>
-            <span>サブグループ</span>
+    <main>
+      <section id="listView" class="list-view" aria-live="polite">
+        <div class="list-toolbar">
+          <label class="region-select">
+            <span class="visually-hidden">地域</span>
             <select id="subgroupFilter">
-              <option value="">全地域</option>
+              <option value="">すべての地域</option>
               <option value="日本">日本</option>
               <option value="海外">海外</option>
             </select>
           </label>
-        </section>
-      </aside>
-
-      <section class="content">
-        <div id="status" class="status">読み込み中...</div>
+          <span id="status" class="status">読み込み中...</span>
+        </div>
         <div id="newsList" class="news-list"></div>
+        <button id="moreButton" class="more-button" type="button" hidden>もっと見る</button>
       </section>
+
+      <article id="detailView" class="detail-view" hidden></article>
     </main>
 
     <script src="/app.js"></script>

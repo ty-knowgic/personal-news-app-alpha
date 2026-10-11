@@ -9,11 +9,14 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "express": "^4.19.2",
+    "jsdom": "^27.0.0",
     "rss-parser": "^3.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2"

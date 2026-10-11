@@ -11,11 +11,12 @@ interface MediaField {
   $?: { url?: string; medium?: string; type?: string };
 }
 
-const parser = new Parser<Record<string, unknown>, { mediaContent?: MediaField; mediaThumbnail?: MediaField }>({
+const parser = new Parser<Record<string, unknown>, { mediaContent?: MediaField; mediaThumbnail?: MediaField; language?: string }>({
   customFields: {
     item: [
       ['media:content', 'mediaContent'],
-      ['media:thumbnail', 'mediaThumbnail']
+      ['media:thumbnail', 'mediaThumbnail'],
+      ['dc:language', 'language']
     ]
   }
 });
@@ -38,43 +39,74 @@ const ARCHIVE_PATH = path.join(__dirname, '../data/news-archive.json');
 // 2026-10 時点で取得できることを確認済みのフィード
 export const officialFeeds: FeedSource[] = [
   // 政治
-  { category: '政治', subgroup: '日本', sourceName: '首相官邸', sourceUrl: 'https://www.kantei.go.jp/', feedUrl: 'https://www.kantei.go.jp/index-jnews.rdf', label: '首相官邸 新着情報' },
-  { category: '政治', subgroup: '日本', sourceName: '総務省', sourceUrl: 'https://www.soumu.go.jp/', feedUrl: 'https://www.soumu.go.jp/news.rdf', label: '総務省 報道資料' },
-  { category: '政治', subgroup: '海外', sourceName: '米国務省', sourceUrl: 'https://www.state.gov/', feedUrl: 'https://www.state.gov/rss-feed/press-releases/feed/', label: 'U.S. Department of State Press Releases' },
-  // 経済
-  { category: '経済', subgroup: '日本', sourceName: '日本銀行', sourceUrl: 'https://www.boj.or.jp/', feedUrl: 'https://www.boj.or.jp/rss/whatsnew.xml', label: '日本銀行 新着情報' },
-  { category: '経済', subgroup: '日本', sourceName: '財務省', sourceUrl: 'https://www.mof.go.jp/', feedUrl: 'https://www.mof.go.jp/news.rss', label: '財務省 新着情報' },
-  { category: '経済', subgroup: '日本', sourceName: '経済産業省', sourceUrl: 'https://www.meti.go.jp/', feedUrl: 'https://www.meti.go.jp/ml_index_release_atom.xml', label: '経済産業省 ニュースリリース' },
-  { category: '経済', subgroup: '日本', sourceName: '金融庁', sourceUrl: 'https://www.fsa.go.jp/', feedUrl: 'https://www.fsa.go.jp/fsaNewsListAll_rss2.xml', label: '金融庁 新着情報' },
-  { category: '経済', subgroup: '海外', sourceName: 'FRB', sourceUrl: 'https://www.federalreserve.gov/', feedUrl: 'https://www.federalreserve.gov/feeds/press_all.xml', label: 'Federal Reserve Press Releases' },
-  { category: '経済', subgroup: '海外', sourceName: 'ECB', sourceUrl: 'https://www.ecb.europa.eu/', feedUrl: 'https://www.ecb.europa.eu/rss/press.html', label: 'ECB Press' },
+  { sourceType: 'official', category: '政治', subgroup: '日本', sourceName: '首相官邸', sourceUrl: 'https://www.kantei.go.jp/', feedUrl: 'https://www.kantei.go.jp/index-jnews.rdf', label: '首相官邸 新着情報' },
+  { sourceType: 'official', category: '政治', subgroup: '日本', sourceName: '総務省', sourceUrl: 'https://www.soumu.go.jp/', feedUrl: 'https://www.soumu.go.jp/news.rdf', label: '総務省 報道資料' },
+  { sourceType: 'official', category: '政治', subgroup: '海外', sourceName: '米国務省', sourceUrl: 'https://www.state.gov/', feedUrl: 'https://www.state.gov/rss-feed/press-releases/feed/', label: 'U.S. Department of State Press Releases' },
+  // 経済（公的機関）: 発表量が多く定型的なお知らせも多いため、件数を抑えて定型告知を除外する
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '日本銀行', sourceUrl: 'https://www.boj.or.jp/', feedUrl: 'https://www.boj.or.jp/rss/whatsnew.xml', label: '日本銀行 新着情報', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '財務省', sourceUrl: 'https://www.mof.go.jp/', feedUrl: 'https://www.mof.go.jp/news.rss', label: '財務省 新着情報', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '経済産業省', sourceUrl: 'https://www.meti.go.jp/', feedUrl: 'https://www.meti.go.jp/ml_index_release_atom.xml', label: '経済産業省 ニュースリリース', maxItems: 8, excludeRoutine: true },
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '金融庁', sourceUrl: 'https://www.fsa.go.jp/', feedUrl: 'https://www.fsa.go.jp/fsaNewsListAll_rss2.xml', label: '金融庁 新着情報', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: 'JPX', sourceUrl: 'https://www.jpx.co.jp/', feedUrl: 'https://www.jpx.co.jp/rss/jpx-news.xml', label: '日本取引所グループ ニュース' },
+  { sourceType: 'official', category: '経済', subgroup: '海外', sourceName: 'FRB', sourceUrl: 'https://www.federalreserve.gov/', feedUrl: 'https://www.federalreserve.gov/feeds/press_all.xml', label: 'Federal Reserve Press Releases', maxItems: 6 },
+  { sourceType: 'official', category: '経済', subgroup: '海外', sourceName: 'ECB', sourceUrl: 'https://www.ecb.europa.eu/', feedUrl: 'https://www.ecb.europa.eu/rss/press.html', label: 'ECB Press', maxItems: 6 },
+  // 経済（企業の発表）: 提携・買収・決算・事業展開・事故や不祥事など、企業活動に関するプレスリリース
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: 'PR TIMES', sourceUrl: 'https://prtimes.jp/', feedUrl: 'https://prtimes.jp/index.rdf', label: 'PR TIMES（企業の一次発表）' },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: '@Press', sourceUrl: 'https://www.atpress.ne.jp/', feedUrl: 'https://www.atpress.ne.jp/rss/index.rdf', label: '@Press（企業の一次発表）' },
+  { sourceType: 'corporate', category: '経済', subgroup: '海外', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/earnings-list.rss', label: 'PR Newswire 決算発表', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '海外', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/mergers-and-acquisitions-list.rss', label: 'PR Newswire M&A', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '海外', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/general-business-latest-news/general-business-latest-news-list.rss', label: 'PR Newswire 一般ビジネス', languages: ['en'] },
   // 投資（政府系の投資、スタートアップの資金調達）
-  { category: '投資', subgroup: '日本', sourceName: 'GPIF', sourceUrl: 'https://www.gpif.go.jp/', feedUrl: 'https://www.gpif.go.jp/rss.xml', label: '年金積立金管理運用独立行政法人' },
-  { matchOnly: ['投資', '生成AI'], subgroup: '日本', sourceName: 'PR TIMES', sourceUrl: 'https://prtimes.jp/', feedUrl: 'https://prtimes.jp/index.rdf', label: 'PR TIMES（企業の一次発表）' },
-  { category: '投資', subgroup: '海外', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/venture-capital-list.rss', label: 'PR Newswire Venture Capital（企業の一次発表）' },
+  { sourceType: 'official', category: '投資', subgroup: '日本', sourceName: 'GPIF', sourceUrl: 'https://www.gpif.go.jp/', feedUrl: 'https://www.gpif.go.jp/rss.xml', label: '年金積立金管理運用独立行政法人' },
+  { sourceType: 'corporate', category: '投資', subgroup: '海外', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/venture-capital-list.rss', label: 'PR Newswire Venture Capital（企業の一次発表）', languages: ['en'] },
   // 社会・国際
-  { category: '社会', subgroup: '日本', sourceName: '厚生労働省', sourceUrl: 'https://www.mhlw.go.jp/', feedUrl: 'https://www.mhlw.go.jp/stf/news.rdf', label: '厚生労働省 新着情報' },
-  { category: '社会', subgroup: '日本', sourceName: '文部科学省', sourceUrl: 'https://www.mext.go.jp/', feedUrl: 'https://www.mext.go.jp/b_menu/news/index.rdf', label: '文部科学省 新着情報' },
-  { category: '社会', subgroup: '海外', sourceName: '米CDC', sourceUrl: 'https://www.cdc.gov/', feedUrl: 'https://tools.cdc.gov/api/v2/resources/media/132608.rss', label: 'CDC Newsroom' },
-  { category: '国際', subgroup: '日本', sourceName: 'JETRO', sourceUrl: 'https://www.jetro.go.jp/', feedUrl: 'https://www.jetro.go.jp/rss/biznews.xml', label: 'JETRO ビジネス短信' },
-  { category: '国際', subgroup: '海外', sourceName: 'WHO', sourceUrl: 'https://www.who.int/', feedUrl: 'https://www.who.int/rss-feeds/news-english.xml', label: 'WHO News' },
-  { category: '国際', subgroup: '海外', sourceName: '欧州委員会', sourceUrl: 'https://ec.europa.eu/', feedUrl: 'https://ec.europa.eu/commission/presscorner/api/rss?language=en', label: 'European Commission Press Corner' },
-  { category: '国際', subgroup: '海外', sourceName: '英国外務省', sourceUrl: 'https://www.gov.uk/', feedUrl: 'https://www.gov.uk/government/organisations/foreign-commonwealth-development-office.atom', label: 'UK Foreign, Commonwealth & Development Office' },
+  { sourceType: 'official', category: '社会', subgroup: '日本', sourceName: '厚生労働省', sourceUrl: 'https://www.mhlw.go.jp/', feedUrl: 'https://www.mhlw.go.jp/stf/news.rdf', label: '厚生労働省 新着情報' },
+  { sourceType: 'official', category: '社会', subgroup: '日本', sourceName: '文部科学省', sourceUrl: 'https://www.mext.go.jp/', feedUrl: 'https://www.mext.go.jp/b_menu/news/index.rdf', label: '文部科学省 新着情報' },
+  { sourceType: 'official', category: '社会', subgroup: '海外', sourceName: '米CDC', sourceUrl: 'https://www.cdc.gov/', feedUrl: 'https://tools.cdc.gov/api/v2/resources/media/132608.rss', label: 'CDC Newsroom' },
+  { sourceType: 'official', category: '国際', subgroup: '日本', sourceName: 'JETRO', sourceUrl: 'https://www.jetro.go.jp/', feedUrl: 'https://www.jetro.go.jp/rss/biznews.xml', label: 'JETRO ビジネス短信' },
+  { sourceType: 'official', category: '国際', subgroup: '海外', sourceName: 'WHO', sourceUrl: 'https://www.who.int/', feedUrl: 'https://www.who.int/rss-feeds/news-english.xml', label: 'WHO News' },
+  { sourceType: 'official', category: '国際', subgroup: '海外', sourceName: '欧州委員会', sourceUrl: 'https://ec.europa.eu/', feedUrl: 'https://ec.europa.eu/commission/presscorner/api/rss?language=en', label: 'European Commission Press Corner' },
+  { sourceType: 'official', category: '国際', subgroup: '海外', sourceName: '英国外務省', sourceUrl: 'https://www.gov.uk/', feedUrl: 'https://www.gov.uk/government/organisations/foreign-commonwealth-development-office.atom', label: 'UK Foreign, Commonwealth & Development Office' },
   // テクノロジー
-  { category: 'テクノロジー', subgroup: '日本', sourceName: 'デジタル庁', sourceUrl: 'https://www.digital.go.jp/', feedUrl: 'https://www.digital.go.jp/rss/news.xml', label: 'デジタル庁 新着情報' },
-  { category: 'テクノロジー', subgroup: '日本', sourceName: 'JST', sourceUrl: 'https://www.jst.go.jp/', feedUrl: 'https://www.jst.go.jp/rss/press.xml', label: '科学技術振興機構 プレスリリース' },
-  { category: 'テクノロジー', subgroup: '海外', sourceName: 'NIST', sourceUrl: 'https://www.nist.gov/', feedUrl: 'https://www.nist.gov/news-events/news/rss.xml', label: 'NIST News' },
-  { category: 'テクノロジー', subgroup: '海外', sourceName: 'NSF', sourceUrl: 'https://www.nsf.gov/', feedUrl: 'https://www.nsf.gov/rss/rss_www_news.xml', label: 'NSF News' },
-  { category: 'テクノロジー', subgroup: '海外', sourceName: 'NVIDIA', sourceUrl: 'https://blogs.nvidia.com/', feedUrl: 'https://blogs.nvidia.com/feed/', label: 'NVIDIA Blog' },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '日本', sourceName: 'デジタル庁', sourceUrl: 'https://www.digital.go.jp/', feedUrl: 'https://www.digital.go.jp/rss/news.xml', label: 'デジタル庁 新着情報' },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '日本', sourceName: 'JST', sourceUrl: 'https://www.jst.go.jp/', feedUrl: 'https://www.jst.go.jp/rss/press.xml', label: '科学技術振興機構 プレスリリース' },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '海外', sourceName: 'NIST', sourceUrl: 'https://www.nist.gov/', feedUrl: 'https://www.nist.gov/news-events/news/rss.xml', label: 'NIST News' },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '海外', sourceName: 'NSF', sourceUrl: 'https://www.nsf.gov/', feedUrl: 'https://www.nsf.gov/rss/rss_www_news.xml', label: 'NSF News' },
+  { sourceType: 'corporate', category: 'テクノロジー', subgroup: '海外', sourceName: 'NVIDIA', sourceUrl: 'https://blogs.nvidia.com/', feedUrl: 'https://blogs.nvidia.com/feed/', label: 'NVIDIA Blog' },
   // 生成AI
-  { category: '生成AI', subgroup: '日本', sourceName: 'Sakana AI', sourceUrl: 'https://sakana.ai/', feedUrl: 'https://sakana.ai/feed.xml', label: 'Sakana AI' },
-  { category: '生成AI', subgroup: '海外', sourceName: 'OpenAI', sourceUrl: 'https://openai.com/', feedUrl: 'https://openai.com/news/rss.xml', label: 'OpenAI News' },
-  { category: '生成AI', subgroup: '海外', sourceName: 'Google DeepMind', sourceUrl: 'https://deepmind.google/', feedUrl: 'https://deepmind.google/blog/rss.xml', label: 'Google DeepMind Blog' },
-  { category: '生成AI', subgroup: '海外', sourceName: 'Google', sourceUrl: 'https://blog.google/', feedUrl: 'https://blog.google/technology/ai/rss/', label: 'Google AI Blog' }
+  { sourceType: 'corporate', category: '生成AI', subgroup: '日本', sourceName: 'Sakana AI', sourceUrl: 'https://sakana.ai/', feedUrl: 'https://sakana.ai/feed.xml', label: 'Sakana AI' },
+  { sourceType: 'corporate', category: '生成AI', subgroup: '海外', sourceName: 'OpenAI', sourceUrl: 'https://openai.com/', feedUrl: 'https://openai.com/news/rss.xml', label: 'OpenAI News' },
+  { sourceType: 'corporate', category: '生成AI', subgroup: '海外', sourceName: 'Google DeepMind', sourceUrl: 'https://deepmind.google/', feedUrl: 'https://deepmind.google/blog/rss.xml', label: 'Google DeepMind Blog' },
+  { sourceType: 'corporate', category: '生成AI', subgroup: '海外', sourceName: 'Google', sourceUrl: 'https://blog.google/', feedUrl: 'https://blog.google/technology/ai/rss/', label: 'Google AI Blog' }
 ];
 
 // 見出しと説明文に含まれる語だけでカテゴリを追加する（推測による分類はしない）
-const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp; subgroup?: '日本' }[] = [
+const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgroup?: '日本'; corporateOnly?: boolean }[] = [
+  {
+    // 企業の発表のうち、提携・買収・決算・事業展開・事故や不祥事など企業活動に関するもの
+    category: '経済',
+    corporateOnly: true,
+    pattern: [
+      // 日本語（「BtoB」の toB を TOB と誤認しないよう、大文字小文字を区別する）
+      new RegExp([
+        '業務提携|資本(業務)?提携|買収|合併|経営統合|子会社化|株式(の)?取得|事業(譲渡|承継|売却|再編|撤退)|公開買付|(?<![A-Za-z])TOB(?![A-Za-z])',
+        '決算|業績予想|業績(の)?修正|上方修正|下方修正|増収|減収|増益|減益|過去最高|特別損失|新規上場|上場(承認|決定|廃止)|(東証|グロース|プライム|スタンダード)(市場)?への(上場|市場変更)',
+        '新工場|工場(を|の)?(新設|建設|稼働|閉鎖)|生産(能力)?(の)?(増強|拡大|開始|停止|終了)|値上げ|価格改定|販売終了|事業終了|サービス終了',
+        // 事故・不祥事は、セキュリティ製品の宣伝と区別するため「お知らせ／お詫び／発生」などの報告表現を伴うものに限る
+        'リコール|自主回収|製品回収',
+        '(不正アクセス|サイバー攻撃|ランサムウェア|情報漏え?い|個人情報.{0,8}(流出|漏え?い)|システム障害|サービス障害|通信障害)[^。]{0,30}(お知らせ|お詫び|おわび|発生|判明|被害を受け)',
+        '不適切(な)?会計|行政処分|業務改善命令|代表取締役.{0,6}(就任|異動|交代)|社長交代|新経営体制|役員人事|役員の異動|中期経営計画|海外進出|海外展開|倒産|民事再生|破産'
+      ].join('|')),
+      // 英語
+      new RegExp([
+        '\\b(acquires?|acquired|acquisition|to acquire|merger|merges?|takeover|tender offer|financial results|quarterly results|earnings|net income|guidance)\\b',
+        '\\b((first|second|third|fourth) quarter|fiscal (year )?\\d{4} results|revenue of|initial public offering|IPO|bankruptcy|chapter 11|restructuring|layoffs?)\\b',
+        '\\b(recall|new (plant|factory)|joint venture|divest(s|iture)?|spin-?off)\\b',
+        '\\b(notice of|discloses?|experienced|reports?|announces?)\\b.{0,40}\\b(data (security )?(breach|incident)|cyber ?(security )?incident|ransomware attack|service outage)\\b',
+        '\\b(names?|appoints?) .{0,40}(CEO|chief executive)\\b'
+      ].join('|'), 'i')
+    ]
+  },
   {
     category: '生成AI',
     pattern: /生成\s?AI|生成ＡＩ|ChatGPT|LLM|大規模言語モデル|基盤モデル|AIエージェント|generative AI|\bGenAI\b|large language model|\bGPT-?\d|\bGemini\b|\bClaude\b|\bAI agents?\b|frontier (AI|model)|foundation models?/i
@@ -96,6 +128,7 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     category: '経済',
     categories: ['経済'],
     subgroup: '日本',
+    sourceType: 'official',
     title: '日本銀行が政策金利の判断材料を公表',
     summary: '日本銀行は政策金利に関する判断材料を公表した。現時点の枠組みと説明を要点化した。',
     publishedAt: '2026-10-11T09:00:00+09:00',
@@ -110,6 +143,7 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     category: '政治',
     categories: ['政治'],
     subgroup: '日本',
+    sourceType: 'official',
     title: '首相官邸が政府の対応方針を発表',
     summary: '首相官邸は政府の対応方針を発表した。内容は公式発表に基づくもので、追加の見立ては含まない。',
     publishedAt: '2026-10-11T10:30:00+09:00',
@@ -121,6 +155,13 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
     isSample: true
   }
 ];
+
+// 公的機関の発表のうち、ニュース性の低い定型的なお知らせ（入札結果、採用募集など）
+const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券/;
+
+// 企業の発表を装った法律事務所の集団訴訟勧誘などは、企業活動の情報ではないため除外する
+// ウェビナー・セミナーの告知も、企業活動そのものの情報ではないため除外する
+const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b/i;
 
 function trimSummary(value: string): string {
   const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -137,16 +178,21 @@ function normalizeTitle(value: string): string {
 function classify(source: FeedSource, title: string, summary: string): CategoryKey[] {
   const text = `${title} ${summary}`;
   const matched = CATEGORY_RULES
-    .filter(rule => (!rule.subgroup || rule.subgroup === source.subgroup) && rule.pattern.test(text))
+    .filter(rule =>
+      (!rule.subgroup || rule.subgroup === source.subgroup) &&
+      (!rule.corporateOnly || source.sourceType === 'corporate') &&
+      [rule.pattern].flat().some(pattern => pattern.test(text)))
     .map(rule => rule.category);
 
-  if (!source.category) {
-    return matched.filter(category => source.matchOnly?.includes(category));
-  }
+  const found = source.category
+    ? [...new Set([source.category, ...matched])]
+    : matched.filter(category => source.matchOnly?.includes(category));
 
-  // 投資に該当する記事は経済から分けて扱う
-  const base = matched.includes('投資') && source.category === '経済' ? [] : [source.category];
-  const categories = [...new Set([...base, ...matched])];
+  // 投資（資金調達など）に該当する記事は経済から分けて扱う
+  const categories = found.includes('投資') ? found.filter(category => category !== '経済') : found;
+  if (!source.category) {
+    return categories.sort((a, b) => CATEGORIES.indexOf(a) - CATEGORIES.indexOf(b));
+  }
   // 並び順を固定し、主カテゴリはフィードの既定カテゴリを優先する
   return categories.sort((a, b) =>
     a === source.category ? -1 : b === source.category ? 1 : CATEGORIES.indexOf(a) - CATEGORIES.indexOf(b)
@@ -162,6 +208,11 @@ function buildHashtags(sourceName: string, categories: CategoryKey[], subgroup: 
 
 function makeId(key: string): string {
   return createHash('sha1').update(key).digest('hex').slice(0, 16);
+}
+
+// http/https や末尾のスラッシュの違いで同じ記事が重複しないよう、URL を正規化して ID に使う
+function normalizeUrlForId(value: string): string {
+  return value.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase();
 }
 
 function absoluteUrl(value: string | undefined, base: string): string | undefined {
@@ -190,10 +241,11 @@ function pickImage(item: Parser.Item & { mediaContent?: MediaField; mediaThumbna
 }
 
 /** 記事の取得元設定（カテゴリ規則など）から、記事の分類関連の項目を組み立てる */
-function finalizeItem(entry: Omit<NewsItem, 'id' | 'category' | 'categories' | 'hashtags' | 'keywords'>, categories: CategoryKey[]): NewsItem {
+function finalizeItem(entry: Omit<NewsItem, 'id' | 'category' | 'categories' | 'hashtags' | 'keywords'> & { id?: string }, categories: CategoryKey[]): NewsItem {
   return {
-    id: makeId(`${entry.sourceName}|${entry.sourceUrl}|${entry.title}`),
     ...entry,
+    // 蓄積データから読み込んだ記事は古い ID を持つことがあるため、必ず作り直す
+    id: makeId(`${entry.sourceName}|${normalizeUrlForId(entry.sourceUrl)}|${entry.title}`),
     summary: trimSummary(entry.summary),
     category: categories[0],
     categories,
@@ -244,19 +296,27 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
     );
 
     for (const item of sorted) {
-      if (items.length >= ITEMS_PER_FEED) break;
+      if (items.length >= (source.maxItems ?? ITEMS_PER_FEED)) break;
 
       const title = normalizeTitle(item.title ?? '');
       const link = absoluteUrl(item.link, source.sourceUrl);
       const publishedAt = toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date);
       if (!title || !link || !publishedAt) continue;
 
+      // 翻訳版など対象外の言語の記事は取り込まない
+      const language = typeof item.language === 'string' ? item.language.toLowerCase() : '';
+      if (source.languages && language && !source.languages.some(code => language.startsWith(code))) continue;
+
       const description = trimSummary(item.contentSnippet ?? item.content ?? item.summary ?? '');
+      if (source.excludeRoutine && ROUTINE_NOTICE.test(title)) continue;
+      if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${title} ${description}`)) continue;
+
       const categories = classify(source, title, description);
       if (categories.length === 0) continue;
 
       items.push(finalizeItem({
         subgroup: source.subgroup,
+        sourceType: source.sourceType,
         title,
         // 説明文が見出しと同じ場合は重複表示を避けるため空にする
         summary: description === title ? '' : description,
@@ -290,9 +350,11 @@ async function loadArchive(): Promise<Map<string, NewsItem>> {
       // フィード設定や分類規則が変わっても反映されるよう、現在の設定で分類し直す
       const source = feedsByUrl.get(item.feedUrl);
       if (!source) continue;
+      if (source.excludeRoutine && ROUTINE_NOTICE.test(item.title)) continue;
+      if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${item.title} ${item.summary}`)) continue;
       const categories = classify(source, item.title, item.summary);
       if (categories.length === 0) continue;
-      const refreshed = finalizeItem({ ...item, subgroup: source.subgroup, sourceName: source.sourceName }, categories);
+      const refreshed = finalizeItem({ ...item, subgroup: source.subgroup, sourceName: source.sourceName, sourceType: source.sourceType }, categories);
       archive.set(refreshed.id, refreshed);
     }
   } catch (error) {
@@ -304,6 +366,26 @@ async function loadArchive(): Promise<Map<string, NewsItem>> {
   return archive;
 }
 
+// maxItems を設定したフィード（日本銀行・財務省など）は、蓄積分も含めて1日あたりの件数を制限する
+function limitPerFeedPerDay(items: NewsItem[]): NewsItem[] {
+  const limits = new Map(officialFeeds.filter(feed => feed.maxItems).map(feed => [feed.feedUrl, feed.maxItems!]));
+  const counts = new Map<string, number>();
+  return items.filter((item) => {
+    const limit = limits.get(item.feedUrl);
+    if (!limit) return true;
+    const key = `${item.feedUrl}|${item.publishedAt.slice(0, 10)}`;
+    const count = (counts.get(key) ?? 0) + 1;
+    counts.set(key, count);
+    return count <= limit;
+  });
+}
+
+function mergeCategories(first: NewsItem, second: NewsItem): NewsItem {
+  const categories = [...new Set([...first.categories, ...second.categories])];
+  const merged = categories.includes('投資') ? categories.filter(category => category !== '経済') : categories;
+  return finalizeItem({ ...first, imageUrl: first.imageUrl ?? second.imageUrl }, merged);
+}
+
 function sortByDate(items: NewsItem[]): NewsItem[] {
   return items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }
@@ -312,7 +394,14 @@ async function collectNews(): Promise<NewsItem[]> {
   const store = await loadArchive();
   const feedResults = await Promise.all(officialFeeds.map(fetchFeed));
 
+  // 同じ記事が複数のフィード（PR Newswire の決算・M&A など）に載る場合は、カテゴリを統合する
+  const fetched = new Map<string, NewsItem>();
   for (const item of feedResults.flat()) {
+    const duplicate = fetched.get(item.id);
+    fetched.set(item.id, duplicate ? mergeCategories(duplicate, item) : item);
+  }
+
+  for (const item of fetched.values()) {
     // 再取得した記事でも、記事ページから取得済みの画像は引き継ぐ
     const existing = store.get(item.id);
     store.set(item.id, existing
@@ -321,7 +410,7 @@ async function collectNews(): Promise<NewsItem[]> {
   }
 
   const cutoff = Date.now() - ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
-  const kept = sortByDate([...store.values()])
+  const kept = limitPerFeedPerDay(sortByDate([...store.values()]))
     .filter(item => new Date(item.publishedAt).getTime() >= cutoff)
     .slice(0, ARCHIVE_LIMIT);
 
@@ -425,6 +514,7 @@ export async function getNews(filters: NewsFilters = {}) {
   return allItems.filter((item) => {
     const byCategory = filters.category ? item.categories.includes(filters.category as CategoryKey) : true;
     const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
+    const bySourceType = filters.sourceType ? item.sourceType === filters.sourceType : true;
     const keyword = filters.keyword?.trim().toLowerCase();
     const byKeyword = keyword
       ? [item.title, item.summary, item.sourceName, ...item.keywords, ...item.hashtags].some(value =>
@@ -432,7 +522,7 @@ export async function getNews(filters: NewsFilters = {}) {
         )
       : true;
 
-    return byCategory && bySubgroup && byKeyword;
+    return byCategory && bySubgroup && bySourceType && byKeyword;
   });
 }
 

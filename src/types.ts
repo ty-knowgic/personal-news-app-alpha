@@ -4,7 +4,11 @@ export const SUBGROUPS = ['日本', '海外'] as const;
 export type CategoryKey = (typeof CATEGORIES)[number];
 export type SubgroupKey = (typeof SUBGROUPS)[number];
 
+export type SourceType = 'official' | 'corporate';
+
 export interface FeedSource {
+  /** 公的機関（official）か、企業の発表（corporate）か */
+  sourceType: SourceType;
   /** フィードの既定カテゴリ。省略した場合はキーワード規則に一致した記事だけを取り込む */
   category?: CategoryKey;
   /** category を省略したフィードで、取り込み対象とするカテゴリ */
@@ -14,6 +18,12 @@ export interface FeedSource {
   sourceUrl: string;
   feedUrl: string;
   label: string;
+  /** 1回の取得で取り込む最大件数（発表量が多い公的機関の比重を抑えるため） */
+  maxItems?: number;
+  /** 入札結果・採用募集など定型的なお知らせを除外する */
+  excludeRoutine?: boolean;
+  /** フィードが言語情報を持つ場合、取り込む言語（例: ['en', 'ja']） */
+  languages?: string[];
 }
 
 export interface NewsItem {
@@ -22,6 +32,7 @@ export interface NewsItem {
   category: CategoryKey;
   categories: CategoryKey[];
   subgroup: SubgroupKey;
+  sourceType: SourceType;
   title: string;
   summary: string;
   publishedAt: string;
@@ -39,6 +50,7 @@ export interface NewsItem {
 export interface NewsFilters {
   category?: string;
   subgroup?: string;
+  sourceType?: string;
   keyword?: string;
 }
 

@@ -47,15 +47,26 @@
     <main>
       <section id="listView" class="list-view">
         <div class="list-toolbar">
-          <label class="region-chip">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" /></svg>
-            <span class="visually-hidden">地域</span>
-            <select id="subgroupFilter">
-              <option value="">すべての地域</option>
-              <option value="日本">日本</option>
-              <option value="海外">海外</option>
-            </select>
-          </label>
+          <div class="filters">
+            <label class="region-chip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" /></svg>
+              <span class="visually-hidden">地域</span>
+              <select id="subgroupFilter">
+                <option value="">すべての地域</option>
+                <option value="日本">日本</option>
+                <option value="海外">海外</option>
+              </select>
+            </label>
+            <label class="region-chip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13" /><path d="M9 21v-6h6v6" /></svg>
+              <span class="visually-hidden">発信元</span>
+              <select id="sourceTypeFilter">
+                <option value="">すべての発信元</option>
+                <option value="corporate">企業</option>
+                <option value="official">公的機関</option>
+              </select>
+            </label>
+          </div>
           <span id="status" class="status" aria-live="polite">読み込み中…</span>
         </div>
 

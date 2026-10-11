@@ -35,12 +35,13 @@ app.get('/api/categories', (_req, res) => {
 });
 
 app.get('/api/news', async (req, res) => {
-  const { category, subgroup, keyword, offset, limit } = req.query;
+  const { category, subgroup, sourceType, keyword, offset, limit } = req.query;
 
   try {
     const result = await getNews({
       category: typeof category === 'string' ? category : undefined,
       subgroup: typeof subgroup === 'string' ? subgroup : undefined,
+      sourceType: typeof sourceType === 'string' ? sourceType : undefined,
       keyword: typeof keyword === 'string' ? keyword : undefined
     });
 

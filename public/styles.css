@@ -340,6 +340,19 @@ main {
   padding: 14px 0 10px;
 }
 
+.filters {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* 影が切れないよう少し余白を持たせる */
+  padding: 2px;
+  margin: -2px;
+}
+
+.filters::-webkit-scrollbar { display: none; }
+
 .region-chip {
   position: relative;
   display: inline-flex;
@@ -371,9 +384,11 @@ main {
 }
 
 .status {
+  flex: 0 0 auto;
   color: var(--muted);
   font-size: 0.82rem;
   text-align: right;
+  white-space: nowrap;
 }
 
 .news-list {
@@ -444,6 +459,16 @@ main {
 }
 
 .card-meta .sep::before { content: '·'; }
+
+.source-badge {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+}
 
 .card-meta .source {
   overflow: hidden;
@@ -963,6 +988,8 @@ main {
   .thumb-placeholder { width: 80px; height: 80px; border-radius: 12px; }
   .thumb-placeholder { font-size: 1.4rem; }
   .card { padding: 14px; gap: 12px; }
+  .region-chip select { padding: 0 28px 0 32px; font-size: 0.85rem; background-position: right 10px center; }
+  .region-chip svg { left: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,5 +1,6 @@
 const tabsEl = document.getElementById('tabs');
 const subgroupFilter = document.getElementById('subgroupFilter');
+const sourceTypeFilter = document.getElementById('sourceTypeFilter');
 const keywordInput = document.getElementById('keywordInput');
 const searchToggle = document.getElementById('searchToggle');
 const searchBar = document.getElementById('searchBar');
@@ -21,6 +22,8 @@ const state = {
   tab: ALL_TAB,
   // タブごとに地域の選択を覚えておく
   subgroupByTab: {},
+  // 発信元の種別（企業 / 公的機関）もタブごとに覚えておく
+  sourceTypeByTab: {},
   keyword: '',
   items: [],
   total: 0,
@@ -123,7 +126,7 @@ function showToast(message) {
 
 function saveListState() {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ tab: state.tab, subgroupByTab: state.subgroupByTab }));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ tab: state.tab, subgroupByTab: state.subgroupByTab, sourceTypeByTab: state.sourceTypeByTab }));
   } catch {
     // プライベートブラウズなどで保存できなくても動作は続ける
   }
@@ -135,6 +138,7 @@ function restoreListState() {
     if (saved) {
       state.tab = saved.tab ?? ALL_TAB;
       state.subgroupByTab = saved.subgroupByTab ?? {};
+      state.sourceTypeByTab = saved.sourceTypeByTab ?? {};
     }
   } catch {
     // 保存データが読めない場合は初期状態で始める
@@ -166,10 +170,15 @@ function selectTab(value) {
     tab.setAttribute('aria-selected', String(selected));
     if (selected) tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   });
-  subgroupFilter.value = state.subgroupByTab[state.tab] ?? '';
+  syncFilterControls();
   saveListState();
   window.scrollTo(0, 0);
   refreshNews();
+}
+
+function syncFilterControls() {
+  subgroupFilter.value = state.subgroupByTab[state.tab] ?? '';
+  sourceTypeFilter.value = state.sourceTypeByTab[state.tab] ?? '';
 }
 
 tabsEl.addEventListener('click', (event) => {
@@ -216,6 +225,7 @@ function renderCard(item) {
           <span class="cat-label">${item.isSample ? 'サンプル' : `${escapeHtml(category)}・${escapeHtml(item.subgroup)}`}</span>
           <span class="sep" aria-hidden="true"></span>
           <span class="source">${escapeHtml(item.sourceName)}</span>
+          ${item.sourceType === 'corporate' ? '<span class="source-badge">企業</span>' : ''}
         </div>
         <h3 class="card-title">${escapeHtml(displayTitle(item))}</h3>
         ${cardSummary(item)}
@@ -251,7 +261,8 @@ let lastRenderedDay = null;
 
 function renderNews() {
   if (!state.items.length) {
-    const scope = [state.tab || 'すべてのカテゴリ', state.subgroupByTab[state.tab]].filter(Boolean).join('・');
+    const sourceLabel = { corporate: '企業', official: '公的機関' }[state.sourceTypeByTab[state.tab]];
+    const scope = [state.tab || 'すべてのカテゴリ', state.subgroupByTab[state.tab], sourceLabel].filter(Boolean).join('・');
     newsList.innerHTML = state.keyword
       ? `<div class="empty-state"><strong>「${escapeHtml(state.keyword)}」に一致する記事はありません</strong>別のキーワードをお試しください。</div>`
       : `<div class="empty-state"><strong>まだ記事がありません</strong>${escapeHtml(scope)}の新しい発表が出ると、ここに表示されます。</div>`;
@@ -285,6 +296,8 @@ async function fetchNewsPage(offset) {
   const subgroup = state.subgroupByTab[state.tab];
   if (state.tab) params.set('category', state.tab);
   if (subgroup) params.set('subgroup', subgroup);
+  const sourceType = state.sourceTypeByTab[state.tab];
+  if (sourceType) params.set('sourceType', sourceType);
   if (state.keyword) params.set('keyword', state.keyword);
 
   const response = await fetch(`/api/news?${params.toString()}`);
@@ -355,6 +368,12 @@ if ('IntersectionObserver' in window) {
 
 subgroupFilter.addEventListener('change', (event) => {
   state.subgroupByTab[state.tab] = event.target.value;
+  saveListState();
+  refreshNews();
+});
+
+sourceTypeFilter.addEventListener('change', (event) => {
+  state.sourceTypeByTab[state.tab] = event.target.value;
   saveListState();
   refreshNews();
 });
@@ -690,7 +709,7 @@ window.addEventListener('hashchange', route);
     fetch('/api/config').then(r => r.json()).then(config => { state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {})
   ]);
   renderTabs(categories);
-  subgroupFilter.value = state.subgroupByTab[state.tab] ?? '';
+  syncFilterControls();
   route();
   await refreshNews();
 })();

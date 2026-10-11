@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal News App α</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark">N</div>
+        <div>
+          <p class="eyebrow">Official-source news</p>
+          <h1>Personal News App α</h1>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <h2>検索</h2>
+          <input id="keywordInput" type="search" placeholder="キーワードで絞り込み" />
+          <label>
+            <span>カテゴリ</span>
+            <select id="categoryFilter">
+              <option value="">全カテゴリ</option>
+            </select>
+          </label>
+          <label>
+            <span>サブグループ</span>
+            <select id="subgroupFilter">
+              <option value="">全地域</option>
+              <option value="日本">日本</option>
+              <option value="海外">海外</option>
+            </select>
+          </label>
+        </section>
+      </aside>
+
+      <section class="content">
+        <div id="status" class="status">読み込み中...</div>
+        <div id="newsList" class="news-list"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

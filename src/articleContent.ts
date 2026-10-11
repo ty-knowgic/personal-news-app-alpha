@@ -6,6 +6,7 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_HTML_BYTES = 3 * 1024 * 1024;
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 // 詳細画面は「概要」なので、元記事の冒頭部分のみを表示し、全文は元サイトで読んでもらう
 const MAX_PARAGRAPHS = 8;
 const MAX_CHARS = 1400;
@@ -25,7 +26,12 @@ const BOILERPLATE = /(All Rights Reserved|Copyright|©|法人番号|本文へ|�
 
 const DATE_ONLY = /^(令和|平成)?[\d０-９元]+年[\d０-９]+月[\d０-９]+日.{0,6}$|^[A-Z][a-z]+ \d{1,2}, \d{4}$/;
 
-const cache = new Map<string, ArticleContent>();
+const cache = new Map<string, ArticleSource>();
+
+// サイト共通の OGP 画像（ロゴなど）は記事の内容を表さないため使わない
+export function isGenericImage(url: string): boolean {
+  return /ogp|og_img|og-image|opengraph-image|social-default|social-media-card|logo|default|title_j/i.test(url);
+}
 
 function decodeHtml(buffer: ArrayBuffer, contentType: string | null): string {
   const head = new TextDecoder('ascii').decode(buffer.slice(0, 4096));
@@ -92,7 +98,15 @@ function limitParagraphs(paragraphs: string[]): { paragraphs: string[]; truncate
   return { paragraphs: result, truncated: false };
 }
 
-function parseHtml(html: string, url: string): ArticleContent {
+export interface ArticleSource {
+  content: ArticleContent;
+  /** 要約に使う本文全体（画面には表示しない） */
+  fullText: string;
+  /** 発表資料が PDF の場合の本体（Base64）。要約にのみ使い、キャッシュしない */
+  pdfBase64?: string;
+}
+
+function parseHtml(html: string, url: string): ArticleSource {
   const dom = new JSDOM(html, { url, virtualConsole: new VirtualConsole() });
   const { document } = dom.window;
 
@@ -122,20 +136,27 @@ function parseHtml(html: string, url: string): ArticleContent {
   const limited = limitParagraphs(paragraphs);
 
   return {
-    status: limited.paragraphs.length ? 'ok' : 'unavailable',
-    paragraphs: limited.paragraphs,
-    truncated: limited.truncated,
-    description,
-    imageUrl,
-    siteName
+    content: {
+      status: limited.paragraphs.length ? 'ok' : 'unavailable',
+      paragraphs: limited.paragraphs,
+      truncated: limited.truncated,
+      description,
+      imageUrl,
+      siteName
+    },
+    fullText: paragraphs.join('\n\n')
   };
 }
 
-export async function fetchArticleContent(url: string): Promise<ArticleContent> {
-  const cached = cache.get(url);
-  if (cached) return cached;
+function unavailable(reason: string): ArticleSource {
+  return { content: { status: 'unavailable', paragraphs: [], truncated: false, reason }, fullText: '' };
+}
 
-  let content: ArticleContent;
+async function loadArticle(url: string, includePdf: boolean): Promise<ArticleSource> {
+  const cached = cache.get(url);
+  if (cached && !(includePdf && cached.content.status === 'pdf')) return cached;
+
+  let source: ArticleSource;
   try {
     const response = await fetch(url, {
       headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'ja,en;q=0.8' },
@@ -144,27 +165,42 @@ export async function fetchArticleContent(url: string): Promise<ArticleContent> 
     const contentType = response.headers.get('content-type');
 
     if (!response.ok) {
-      content = { status: 'unavailable', paragraphs: [], truncated: false, reason: `HTTP ${response.status}` };
+      source = unavailable(`HTTP ${response.status}`);
     } else if (contentType?.includes('pdf') || /\.pdf($|\?)/i.test(response.url)) {
-      content = { status: 'pdf', paragraphs: [], truncated: false };
+      source = { content: { status: 'pdf', paragraphs: [], truncated: false }, fullText: '' };
+      if (includePdf) {
+        const buffer = await response.arrayBuffer();
+        if (buffer.byteLength <= MAX_PDF_BYTES) {
+          // PDF の本体はサイズが大きいためキャッシュには入れない
+          return { ...source, pdfBase64: Buffer.from(buffer).toString('base64') };
+        }
+      }
     } else if (!contentType?.includes('html')) {
-      content = { status: 'unavailable', paragraphs: [], truncated: false, reason: contentType ?? 'unknown' };
+      source = unavailable(contentType ?? 'unknown');
     } else {
       const buffer = await response.arrayBuffer();
-      if (buffer.byteLength > MAX_HTML_BYTES) {
-        content = { status: 'unavailable', paragraphs: [], truncated: false, reason: 'too large' };
-      } else {
-        content = parseHtml(decodeHtml(buffer, contentType), response.url || url);
-      }
+      source = buffer.byteLength > MAX_HTML_BYTES
+        ? unavailable('too large')
+        : parseHtml(decodeHtml(buffer, contentType), response.url || url);
     }
   } catch (error) {
     // 一時的な失敗はキャッシュせず、次回再取得する
-    return { status: 'unavailable', paragraphs: [], truncated: false, reason: (error as Error).message };
+    return unavailable((error as Error).message);
   }
 
   if (cache.size >= CACHE_LIMIT) {
     cache.delete(cache.keys().next().value!);
   }
-  cache.set(url, content);
-  return content;
+  cache.set(url, source);
+  return source;
+}
+
+/** 詳細画面に表示する、発信元ページの冒頭部分 */
+export async function fetchArticleContent(url: string): Promise<ArticleContent> {
+  return (await loadArticle(url, false)).content;
+}
+
+/** 要約用に、本文全体（PDF の場合は PDF 本体）を取得する */
+export async function fetchArticleSource(url: string): Promise<ArticleSource> {
+  return loadArticle(url, true);
 }

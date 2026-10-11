@@ -29,6 +29,8 @@ export interface NewsItem {
   sourceUrl: string;
   feedUrl: string;
   imageUrl?: string;
+  /** 記事ページの画像を確認済みか（確認は1記事1回のみ） */
+  imageChecked?: boolean;
   hashtags: string[];
   keywords: string[];
   isSample?: boolean;
@@ -48,4 +50,17 @@ export interface ArticleContent {
   imageUrl?: string;
   siteName?: string;
   reason?: string;
+}
+
+export interface ArticleSummary {
+  /** 日本語の見出し（原題が外国語の場合は訳） */
+  headlineJa: string;
+  summary: string;
+  keyPoints: string[];
+  /** 本文から見出し以上の内容を読み取れなかった場合 true */
+  insufficient: boolean;
+  /** 要約の根拠: 記事本文 / PDF 資料 / RSS の説明文のみ */
+  basis: 'article' | 'pdf' | 'feed';
+  model: string;
+  createdAt: string;
 }

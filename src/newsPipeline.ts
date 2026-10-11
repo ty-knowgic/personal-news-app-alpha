@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Parser from 'rss-parser';
+import { fetchArticleContent, isGenericImage } from './articleContent.js';
 import { CATEGORIES, SUBGROUPS } from './types.js';
 import type { CategoryKey, FeedSource, NewsFilters, NewsItem } from './types.js';
 
@@ -27,6 +28,9 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 const ITEMS_PER_FEED = 20;
 const ARCHIVE_DAYS = 30;
 const ARCHIVE_LIMIT = 3000;
+// フィードに画像がない記事のうち、新しい順にこの件数まで記事ページの画像を確認する
+const IMAGE_ENRICH_LIMIT = 80;
+const IMAGE_ENRICH_CONCURRENCY = 4;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ARCHIVE_PATH = path.join(__dirname, '../data/news-archive.json');
@@ -309,7 +313,11 @@ async function collectNews(): Promise<NewsItem[]> {
   const feedResults = await Promise.all(officialFeeds.map(fetchFeed));
 
   for (const item of feedResults.flat()) {
-    store.set(item.id, item);
+    // 再取得した記事でも、記事ページから取得済みの画像は引き継ぐ
+    const existing = store.get(item.id);
+    store.set(item.id, existing
+      ? { ...item, imageUrl: item.imageUrl ?? existing.imageUrl, imageChecked: existing.imageChecked }
+      : item);
   }
 
   const cutoff = Date.now() - ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
@@ -319,19 +327,68 @@ async function collectNews(): Promise<NewsItem[]> {
 
   store.clear();
   kept.forEach(item => store.set(item.id, item));
+  dropSharedImages(kept);
 
   if (kept.length === 0) {
     return fallbackArticles.map(entry => ({ ...entry, id: makeId(`sample|${entry.title}`) }));
   }
 
+  await saveArchive(kept);
+  void enrichImages(kept);
+  return kept;
+}
+
+async function saveArchive(items: NewsItem[]): Promise<void> {
   try {
     await mkdir(path.dirname(ARCHIVE_PATH), { recursive: true });
-    await writeFile(ARCHIVE_PATH, JSON.stringify(kept));
+    await writeFile(ARCHIVE_PATH, JSON.stringify(items));
   } catch (error) {
     console.warn(`[archive] 保存に失敗しました: ${(error as Error).message}`);
   }
+}
 
-  return kept;
+// 3件以上の記事で同じ画像が使われている場合は、サイト共通の既定画像とみなして表示しない
+function dropSharedImages(items: NewsItem[]): void {
+  const counts = new Map<string, number>();
+  items.forEach(item => item.imageUrl && counts.set(item.imageUrl, (counts.get(item.imageUrl) ?? 0) + 1));
+  items.forEach((item) => {
+    if (item.imageUrl && ((counts.get(item.imageUrl) ?? 0) >= 3 || isGenericImage(item.imageUrl))) {
+      item.imageUrl = undefined;
+    }
+  });
+}
+
+let enriching = false;
+
+// 多くの公式フィードは画像を含まないため、記事ページの og:image を裏で取得して一覧のサムネイルに使う。
+// 一覧の応答は待たせず、取得できた画像は次回以降の一覧に反映される
+async function enrichImages(items: NewsItem[]): Promise<void> {
+  if (enriching) return;
+  enriching = true;
+
+  try {
+    const queue = items.filter(item => !item.imageUrl && !item.imageChecked && !item.isSample).slice(0, IMAGE_ENRICH_LIMIT);
+    if (!queue.length) return;
+
+    const workers = Array.from({ length: IMAGE_ENRICH_CONCURRENCY }, async () => {
+      for (let item = queue.shift(); item; item = queue.shift()) {
+        const content = await fetchArticleContent(item.sourceUrl);
+        // 通信エラーなど一時的な失敗は、次回の更新で再確認する
+        if (content.status === 'unavailable' && content.reason && !content.reason.startsWith('HTTP')) continue;
+        if (content.imageUrl && !isGenericImage(content.imageUrl)) {
+          item.imageUrl = content.imageUrl;
+        }
+        item.imageChecked = true;
+      }
+    });
+    await Promise.all(workers);
+    dropSharedImages(items);
+    await saveArchive(items);
+  } catch (error) {
+    console.warn(`[image] 画像の取得に失敗しました: ${(error as Error).message}`);
+  } finally {
+    enriching = false;
+  }
 }
 
 let cache: { items: NewsItem[]; fetchedAt: number } | null = null;

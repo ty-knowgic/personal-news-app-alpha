@@ -15,12 +15,34 @@ const shareButton = document.getElementById('shareButton');
 const todayEl = document.getElementById('today');
 const settingsView = document.getElementById('settingsView');
 const settingsButton = document.getElementById('settingsButton');
+const onboardingView = document.getElementById('onboardingView');
 
 const ALL_TAB = '';
 // 関心プロフィールに一致する記事を関連度順に並べるタブ
 const FOR_YOU_TAB = '__for_you';
 const SOURCE_TYPE_LABELS = { official: '政府・自治体', corporate: '企業', research: '研究機関', npo: '団体・NPO' };
 const SOURCE_BADGES = { corporate: '企業', research: '研究', npo: '団体' };
+// 初回の質問と設定で使う、地域・分野の説明
+const REGION_INFO = {
+  カナダ: '連邦政府・オンタリオ州・ウォータールー地域の自治体',
+  日本: '官邸・各省庁・日本銀行・企業の発表',
+  米国: '連邦政府・規制当局・企業',
+  欧州: 'EU・英国',
+  グローバル: '国際機関・多国籍企業'
+};
+const CATEGORY_INFO = {
+  政治: '政府の方針・法案・選挙',
+  経済: '金融政策・統計・企業の決算や M&A',
+  投資: '政府の投資策・スタートアップの資金調達',
+  安全保障: '防衛・サイバーセキュリティ',
+  国際: '外交・国際機関',
+  社会: '保健・福祉・教育・地域の暮らし',
+  テクノロジー: 'ロボット・半導体・デジタル政策',
+  生成AI: 'LLM・AI エージェント・AI 企業の発表',
+  サイエンス: '数学・科学・工学（STEM）の研究成果',
+  '文化・芸術': '芸術・文化財・文化政策',
+  イベント: '催し・展示会・カンファレンス'
+};
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
 
@@ -197,6 +219,18 @@ function renderFilterOptions(filters) {
     ...filters.regions.map(region => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`)].join('');
   sourceTypeFilter.innerHTML = ['<option value="">すべての発信元</option>',
     ...filters.sourceTypes.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)}</option>`)].join('');
+}
+
+/** 選んだ分野・地域に合わせて、タブと地域の選択肢を作り直す */
+async function reloadFilters() {
+  const filters = await fetch('/api/filters').then(r => r.json());
+  renderFilterOptions(filters);
+  renderTabs(filters.categories);
+  // 対象外になった地域が選ばれたままにならないようにする
+  for (const [tab, region] of Object.entries(state.subgroupByTab)) {
+    if (region && !filters.regions.includes(region)) delete state.subgroupByTab[tab];
+  }
+  syncFilterControls();
 }
 
 function syncFilterControls() {
@@ -695,6 +729,8 @@ async function loadSummary(id) {
 
 async function showDetail(id) {
   document.body.classList.add('is-detail');
+  document.body.classList.remove('is-onboarding');
+  onboardingView.hidden = true;
   listView.hidden = true;
   settingsView.hidden = true;
   detailView.hidden = false;
@@ -745,7 +781,8 @@ async function showDetail(id) {
 }
 
 function showList() {
-  document.body.classList.remove('is-detail');
+  document.body.classList.remove('is-detail', 'is-onboarding');
+  onboardingView.hidden = true;
   currentDetail = null;
   detailView.hidden = true;
   settingsView.hidden = true;
@@ -808,6 +845,141 @@ detailView.addEventListener('click', (event) => {
 });
 
 
+// ---------- 地域・分野の選択（初回の質問と設定で共通） ----------
+
+let choiceOptions = null;
+
+async function loadChoiceOptions() {
+  choiceOptions ??= await fetch('/api/options').then(r => r.json());
+  return choiceOptions;
+}
+
+const CHECK_ICON = '<svg class="choice-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+function renderChoiceGrid(kind, selected) {
+  const options = kind === 'regions'
+    ? choiceOptions.regions.map(option => ({ value: option.value, info: REGION_INFO[option.value], meta: `情報源 ${option.sources}` }))
+    : choiceOptions.categories.map(option => ({ value: option.value, info: CATEGORY_INFO[option.value], meta: `30日で${option.articles}件` }));
+  return `
+    <div class="choice-grid" data-kind="${kind}">
+      ${options.map(option => `
+        <button class="choice" type="button" data-value="${escapeHtml(option.value)}" ${kind === 'categories' ? `data-cat="${escapeHtml(option.value)}"` : ''} aria-pressed="${selected.includes(option.value)}">
+          <span class="choice-text">
+            <span class="choice-label">${escapeHtml(option.value)}</span>
+            <span class="choice-info">${escapeHtml(option.info ?? '')}</span>
+            <span class="choice-meta">${escapeHtml(option.meta)}</span>
+          </span>
+          ${CHECK_ICON}
+        </button>`).join('')}
+    </div>
+  `;
+}
+
+/** 押された選択肢を切り替え、既定の並び順で選択中の値を返す */
+function toggleChoice(button, selected) {
+  const grid = button.closest('.choice-grid');
+  const value = button.dataset.value;
+  const next = selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value];
+  button.setAttribute('aria-pressed', String(next.includes(value)));
+  const order = [...grid.querySelectorAll('.choice')].map(choice => choice.dataset.value);
+  return order.filter(v => next.includes(v));
+}
+
+// ---------- 初回の質問 ----------
+
+const onboarding = { step: 1, regions: [], categories: [] };
+
+function renderOnboarding() {
+  const isRegions = onboarding.step === 1;
+  const selected = isRegions ? onboarding.regions : onboarding.categories;
+  const all = (isRegions ? choiceOptions.regions : choiceOptions.categories).map(option => option.value);
+  onboardingView.innerHTML = `
+    <div class="onb-inner">
+      <div class="onb-progress" aria-hidden="true"><span class="is-active"></span><span class="${isRegions ? '' : 'is-active'}"></span></div>
+      <p class="onb-step">質問 ${onboarding.step} / 2</p>
+      <h1 class="onb-title">${isRegions ? 'どの国・地域の情報を受け取りますか？' : 'どの分野を柱にしますか？'}</h1>
+      <p class="onb-lead">${isRegions
+        ? '政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。'
+        : '選んだ分野がタブになり、ほかの分野の発表は表示しません。'}複数選べます。</p>
+      <button class="text-button onb-all" type="button" data-action="select-all">${selected.length === all.length ? 'すべて解除' : 'すべて選択'}</button>
+      ${renderChoiceGrid(isRegions ? 'regions' : 'categories', selected)}
+      <div class="onb-actions">
+        ${isRegions ? '' : '<button class="secondary-button" type="button" data-action="back">戻る</button>'}
+        <button class="primary-action" type="button" data-action="next" ${selected.length ? '' : 'disabled'}>${isRegions ? '次へ' : 'はじめる'}</button>
+      </div>
+      <p class="onb-note">あとから設定でいつでも変更できます。</p>
+    </div>
+  `;
+}
+
+async function showOnboarding() {
+  document.body.classList.add('is-onboarding');
+  listView.hidden = true;
+  detailView.hidden = true;
+  settingsView.hidden = true;
+  onboardingView.hidden = false;
+  document.title = 'ようこそ | Personal News';
+  window.scrollTo(0, 0);
+  onboardingView.innerHTML = '<div class="empty-state">読み込み中…</div>';
+  try {
+    await loadChoiceOptions();
+    renderOnboarding();
+  } catch {
+    onboardingView.innerHTML = '<div class="empty-state"><strong>読み込めませんでした</strong>通信状況を確認してください。</div>';
+  }
+}
+
+onboardingView.addEventListener('click', async (event) => {
+  const key = onboarding.step === 1 ? 'regions' : 'categories';
+  const choice = event.target.closest('.choice');
+  if (choice) {
+    onboarding[key] = toggleChoice(choice, onboarding[key]);
+    renderOnboarding();
+    return;
+  }
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (action === 'select-all') {
+    const all = choiceOptions[key].map(option => option.value);
+    onboarding[key] = onboarding[key].length === all.length ? [] : all;
+    renderOnboarding();
+  } else if (action === 'back') {
+    onboarding.step = 1;
+    renderOnboarding();
+  } else if (action === 'next' && onboarding[key].length) {
+    if (onboarding.step === 1) {
+      onboarding.step = 2;
+      renderOnboarding();
+      window.scrollTo(0, 0);
+      return;
+    }
+    event.target.disabled = true;
+    try {
+      const profile = await fetch('/api/profile').then(r => r.json());
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...profile, onboarded: true, regions: onboarding.regions, categories: onboarding.categories })
+      });
+      if (!response.ok) throw new Error('save');
+      state.needsOnboarding = false;
+      document.body.classList.remove('is-onboarding');
+      onboardingView.hidden = true;
+      onboardingView.innerHTML = '';
+      state.tab = FOR_YOU_TAB;
+      state.subgroupByTab = {};
+      state.sourceTypeByTab = {};
+      saveListState();
+      await reloadFilters();
+      location.hash = '#/';
+      route();
+      refreshNews();
+    } catch {
+      event.target.disabled = false;
+      showToast('保存できませんでした');
+    }
+  }
+});
+
 // ---------- マイニュースの設定 ----------
 
 const WEIGHT_OPTIONS = [
@@ -820,7 +992,7 @@ const WEIGHT_OPTIONS = [
 let profileDraft = null;
 let sourcesDraft = [];
 // 設定画面で表示中の区分（情報源 / 関心トピック）
-let settingsPane = 'sources';
+let settingsPane = 'scope';
 const SOURCE_TYPE_ORDER = ['official', 'corporate', 'research', 'npo'];
 const REGION_ORDER = ['カナダ', '日本', '米国', '欧州', 'グローバル'];
 
@@ -887,18 +1059,23 @@ function semanticStatusNote() {
 
 // ---------- 情報源の選択 ----------
 
+function isOutOfRegion(source) {
+  return profileDraft.regions.length > 0 && !profileDraft.regions.includes(source.subgroup);
+}
+
 function isSourceEnabled(source) {
-  return !profileDraft.excludedSources.includes(source.id);
+  return !profileDraft.excludedSources.includes(source.id) && !isOutOfRegion(source);
 }
 
 function renderSourceRow(source) {
   const enabled = isSourceEnabled(source);
-  const details = [source.label !== source.sourceName ? source.label : '', source.subgroup, source.categories.join('・'), `30日で${source.count}件`].filter(Boolean);
+  const outOfRegion = isOutOfRegion(source);
+  const details = [source.label !== source.sourceName ? source.label : '', source.subgroup, source.categories.join('・'), outOfRegion ? '選んだ地域の対象外' : `30日で${source.count}件`].filter(Boolean);
   const url = safeUrl(source.sourceUrl);
   return `
     <li class="source-row${enabled ? '' : ' is-off'}">
       <label class="switch">
-        <input type="checkbox" data-source="${escapeHtml(source.id)}" ${enabled ? 'checked' : ''}>
+        <input type="checkbox" data-source="${escapeHtml(source.id)}" ${enabled ? 'checked' : ''} ${outOfRegion ? 'disabled' : ''}>
         <span class="switch-track" aria-hidden="true"></span>
         <span class="visually-hidden">${escapeHtml(source.label)}を使う</span>
       </label>
@@ -916,26 +1093,43 @@ function renderSourceRow(source) {
 function renderSourceGroup(type) {
   const sources = sourcesDraft
     .filter(source => source.sourceType === type)
-    .sort((a, b) => REGION_ORDER.indexOf(a.subgroup) - REGION_ORDER.indexOf(b.subgroup));
+    // 選んだ地域の情報源を先に、対象外の地域の情報源は後ろにまとめる
+    .sort((a, b) => Number(isOutOfRegion(a)) - Number(isOutOfRegion(b)) || REGION_ORDER.indexOf(a.subgroup) - REGION_ORDER.indexOf(b.subgroup));
   if (!sources.length) return '';
   const enabledCount = sources.filter(isSourceEnabled).length;
+  const available = sources.filter(source => !isOutOfRegion(source)).length;
   return `
     <section class="source-group" data-type="${type}">
       <div class="source-group-head">
-        <h2>${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)} <span class="source-count">${enabledCount}/${sources.length}</span></h2>
-        <button class="text-button" type="button" data-action="toggle-group" data-type="${type}">${enabledCount ? 'すべてオフ' : 'すべてオン'}</button>
+        <h2>${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)} <span class="source-count">${enabledCount}/${available}</span></h2>
+        ${available ? `<button class="text-button" type="button" data-action="toggle-group" data-type="${type}">${enabledCount ? 'すべてオフ' : 'すべてオン'}</button>` : ''}
       </div>
       <ul class="source-list">${sources.map(renderSourceRow).join('')}</ul>
     </section>
   `;
 }
 
-function renderSourcesPane() {
+function sourceSummary() {
+  const available = sourcesDraft.filter(source => !isOutOfRegion(source)).length;
   const enabled = sourcesDraft.filter(isSourceEnabled).length;
+  return `選んだ地域の${available}件中 <strong>${enabled}件</strong>を使用中`;
+}
+
+function renderSourcesPane() {
   return `
     <p class="settings-lead">政府・自治体、企業、研究機関、団体・NPO が自ら公開した発表だけを集めています。報道機関の記事や論評は含みません。オフにした情報源は、すべてのタブとブリーフィングに表示されず、取り込みもしません。</p>
-    <p class="source-summary">${sourcesDraft.length}件中 <strong>${enabled}件</strong>を使用中</p>
+    <p class="source-summary">${sourceSummary()}</p>
     ${SOURCE_TYPE_ORDER.map(renderSourceGroup).join('')}
+  `;
+}
+
+function renderScopePane() {
+  return `
+    <p class="settings-lead">受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになり、地域と分野の外にある発表は、すべてのタブとブリーフィングに表示しません。</p>
+    <h2 class="settings-subtitle">国・地域</h2>
+    ${renderChoiceGrid('regions', profileDraft.regions)}
+    <h2 class="settings-subtitle">分野</h2>
+    ${renderChoiceGrid('categories', profileDraft.categories)}
   `;
 }
 
@@ -952,13 +1146,13 @@ function renderSettings() {
   settingsView.innerHTML = `
     <h1 class="settings-title">設定</h1>
     <div class="segmented settings-tabs" role="radiogroup" aria-label="設定の区分">
-      ${[['sources', '情報源'], ['topics', '関心トピック']].map(([value, label]) => `
+      ${[['scope', '地域・分野'], ['sources', '情報源'], ['topics', '関心トピック']].map(([value, label]) => `
         <label class="segment">
           <input type="radio" name="settings-pane" value="${value}" ${settingsPane === value ? 'checked' : ''}>
           <span>${label}</span>
         </label>`).join('')}
     </div>
-    <div class="settings-pane">${settingsPane === 'sources' ? renderSourcesPane() : renderTopicsPane()}</div>
+    <div class="settings-pane">${{ scope: renderScopePane, sources: renderSourcesPane, topics: renderTopicsPane }[settingsPane]()}</div>
     <div class="settings-actions">
       <button class="secondary-button" type="button" data-action="reset-profile">初期設定に戻す</button>
       <button class="primary-action" type="button" data-action="save-profile">保存</button>
@@ -997,6 +1191,10 @@ async function showSettings() {
       fetch('/api/config').then(r => r.json()).catch(() => state.config)
     ]);
     profileDraft = { ...profile, excludedSources: profile.excludedSources ?? [] };
+    // 空（未選択）は「すべて」を意味するため、画面ではすべて選んだ状態で表示する
+    await loadChoiceOptions();
+    if (!profileDraft.regions?.length) profileDraft.regions = choiceOptions.regions.map(option => option.value);
+    if (!profileDraft.categories?.length) profileDraft.categories = choiceOptions.categories.map(option => option.value);
     sourcesDraft = sources;
     state.config = config;
     renderSettings();
@@ -1020,7 +1218,7 @@ function refreshSourceCounts() {
     group.querySelector('.source-group-head').replaceWith(next.querySelector('.source-group-head'));
   });
   const summary = settingsView.querySelector('.source-summary');
-  if (summary) summary.innerHTML = `${sourcesDraft.length}件中 <strong>${sourcesDraft.filter(isSourceEnabled).length}件</strong>を使用中`;
+  if (summary) summary.innerHTML = sourceSummary();
 }
 
 settingsView.addEventListener('change', (event) => {
@@ -1043,10 +1241,17 @@ settingsView.addEventListener('change', (event) => {
 
 settingsView.addEventListener('click', async (event) => {
   const action = event.target.closest('[data-action]')?.dataset.action;
-  if (!action || !profileDraft) return;
+  if (!profileDraft || (!action && !event.target.closest('.choice'))) return;
+
+  const choice = event.target.closest('.choice');
+  if (choice) {
+    const key = choice.closest('.choice-grid').dataset.kind;
+    profileDraft[key] = toggleChoice(choice, profileDraft[key]);
+    return;
+  }
 
   if (action === 'toggle-group') {
-    const sources = sourcesDraft.filter(source => source.sourceType === event.target.closest('[data-type]').dataset.type);
+    const sources = sourcesDraft.filter(source => source.sourceType === event.target.closest('[data-type]').dataset.type && !isOutOfRegion(source));
     const turnOn = !sources.some(isSourceEnabled);
     sources.forEach(source => setSourceEnabled(source.id, turnOn));
     renderSettings();
@@ -1064,12 +1269,20 @@ settingsView.addEventListener('click', async (event) => {
     profileDraft.topics.splice(index, 1);
     renderSettings();
   } else if (action === 'reset-profile') {
-    if (!confirm('関心トピックと情報源を初期設定に戻しますか？')) return;
-    profileDraft = await (await fetch('/api/profile/reset', { method: 'POST' })).json();
-    renderSettings();
-    showToast('初期設定に戻しました');
+    if (!confirm('地域・分野、情報源、関心トピックを初期設定に戻し、最初の質問からやり直しますか？')) return;
+    await fetch('/api/profile/reset', { method: 'POST' });
+    onboarding.step = 1;
+    onboarding.regions = [];
+    onboarding.categories = [];
+    state.needsOnboarding = true;
+    location.hash = '#/';
+    route();
   } else if (action === 'save-profile') {
     collectSettings();
+    if (!profileDraft.regions.length || !profileDraft.categories.length) {
+      showToast('地域と分野をそれぞれ1つ以上選んでください');
+      return;
+    }
     if (!sourcesDraft.some(isSourceEnabled)) {
       showToast('情報源を1つ以上オンにしてください');
       return;
@@ -1085,6 +1298,7 @@ settingsView.addEventListener('click', async (event) => {
       return;
     }
     showToast('保存しました');
+    await reloadFilters().catch(() => {});
     // 関心トピックを編集した場合は、結果を確かめられるようマイニュースを開く
     if (settingsPane === 'topics') {
       state.tab = FOR_YOU_TAB;
@@ -1108,7 +1322,10 @@ settingsButton.addEventListener('click', () => {
 
 function route() {
   const match = location.hash.match(/^#\/article\/([^/?#]+)/);
-  if (location.hash === '#/settings') {
+  // 初回は、地域と分野の質問に答えてから一覧を表示する（共有された記事のリンクはそのまま開く）
+  if (state.needsOnboarding && !match) {
+    showOnboarding();
+  } else if (location.hash === '#/settings') {
     showSettings();
   } else if (match) {
     showDetail(decodeURIComponent(match[1]));
@@ -1126,10 +1343,11 @@ window.addEventListener('hashchange', route);
 
   const [categories] = await Promise.all([
     fetch('/api/filters').then(r => r.json()).then((filters) => { renderFilterOptions(filters); return filters.categories; }).catch(() => []),
-    fetch('/api/config').then(r => r.json()).then(config => { state.config = config; state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {})
+    fetch('/api/config').then(r => r.json()).then(config => { state.config = config; state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {}),
+    fetch('/api/profile').then(r => r.json()).then(profile => { state.needsOnboarding = profile.onboarded === false; }).catch(() => {})
   ]);
   renderTabs(categories);
   syncFilterControls();
   route();
-  await refreshNews();
+  if (!state.needsOnboarding) await refreshNews();
 })();

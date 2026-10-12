@@ -3,11 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
 import { embedItemsInBackground, getEmbeddingStatus, loadItemVectors, prepareSemanticScorer } from './embeddings.js';
-import { cleanFeedText, getNews, getNewsById, invalidateNewsCache, listCategoryGroups, listFilterOptions, listSources, loadNews, setCollectionFilter, sourceId } from './newsPipeline.js';
+import { cleanFeedText, getNews, getNewsById, invalidateNewsCache, listCategoryGroups, listFilterOptions, listSources, loadNews, setCollectionFilter, sourceId, withPrimaryCategory } from './newsPipeline.js';
 import { defaultProfile, listProfileIds, loadProfile, matchTopics, rankForYou, saveProfile, semanticQueries } from './profile.js';
 import type { Profile } from './profile.js';
 import { buildStoryIndex, findRelated, groupStories } from './stories.js';
 import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
+import { CATEGORIES, SOURCE_TYPES, SUBGROUPS } from './types.js';
 import type { NewsItem } from './types.js';
 
 const app = express();
@@ -71,8 +72,9 @@ async function groupForDisplay<T extends NewsItem & { score?: number }>(items: T
 let collectedKey = '';
 async function updateCollectionFilter(): Promise<void> {
   const profiles = await Promise.all((await listProfileIds()).map(id => loadProfile(id)));
-  const excludedByAll = new Set(listSources().map(source => source.id)
-    .filter(id => profiles.every(profile => profile.excludedSources.includes(id))));
+  const excludedByAll = new Set(listSources()
+    .filter(source => profiles.every(profile => !sourceInScope(source, profile)))
+    .map(source => source.id));
   setCollectionFilter(id => !excludedByAll.has(id));
   const key = [...excludedByAll].sort().join(',');
   // 取り込む情報源が変わった場合は、次の表示で取り込み直す（オンに戻した情報源をすぐ表示するため）
@@ -80,13 +82,19 @@ async function updateCollectionFilter(): Promise<void> {
   collectedKey = key;
 }
 
-function excludedSet(profile: Profile): Set<string> {
-  return new Set(profile.excludedSources);
+/** 利用者がオフにしておらず、選んだ地域に含まれる情報源か */
+function sourceInScope(source: { id: string; subgroup: string }, profile: Profile): boolean {
+  return !profile.excludedSources.includes(source.id) && (!profile.regions.length || profile.regions.includes(source.subgroup));
 }
 
-/** 利用者がオフにした情報源を除いた、蓄積中の全記事 */
+/** 利用者の選んだ地域・分野と、オフにした情報源による絞り込み条件 */
+function scopeOf(profile: Profile) {
+  return { excludedSources: new Set(profile.excludedSources), regions: profile.regions, categories: profile.categories };
+}
+
+/** 利用者の対象範囲（地域・分野・情報源）に含まれる、蓄積中の全記事 */
 async function visibleNews(profile: Profile): Promise<NewsItem[]> {
-  return getNews({ excludedSources: excludedSet(profile) });
+  return (await getNews(scopeOf(profile))).map(item => withPrimaryCategory(item, profile.categories));
 }
 
 // 情報源の一覧（設定画面用）。直近30日の取り込み件数と、この利用者が使っているかを添える
@@ -101,6 +109,8 @@ app.get('/api/sources', async (_req, res) => {
     res.json(listSources().map(source => ({
       ...source,
       enabled: !profile.excludedSources.includes(source.id),
+      // 選んだ地域の外にある情報源（設定の「地域・分野」で地域を加えると使われる）
+      outOfRegion: Boolean(profile.regions.length) && !profile.regions.includes(source.subgroup),
       count: counts.get(source.id) ?? 0
     })));
   } catch (error) {
@@ -109,8 +119,21 @@ app.get('/api/sources', async (_req, res) => {
   }
 });
 
-app.get('/api/filters', (_req, res) => {
-  res.json(listFilterOptions());
+// タブ（分野）と地域の選択肢。利用者が選んだ分野・地域だけを、選んだ順ではなく既定の並び順で返す
+app.get('/api/filters', async (_req, res) => {
+  const profile = await loadProfile();
+  const pick = <T extends string>(all: readonly T[], chosen: string[]) => (chosen.length ? all.filter(value => chosen.includes(value)) : [...all]);
+  res.json({ ...listFilterOptions(), categories: pick(CATEGORIES, profile.categories), regions: pick(SUBGROUPS, profile.regions), sourceTypes: [...SOURCE_TYPES] });
+});
+
+// 初回の質問の選択肢: 地域・分野ごとの情報源数と、直近30日の記事数
+app.get('/api/options', async (_req, res) => {
+  const sources = listSources();
+  const items = await loadNews();
+  res.json({
+    regions: SUBGROUPS.map(region => ({ value: region, sources: sources.filter(source => source.subgroup === region).length })),
+    categories: CATEGORIES.map(category => ({ value: category, articles: items.filter(item => item.categories.includes(category)).length }))
+  });
 });
 
 // 関心プロフィール（現在は1人分。複数ユーザー化の際はログイン中のユーザー ID で切り替える）
@@ -148,12 +171,12 @@ app.get('/api/news', async (req, res) => {
       subgroup: typeof subgroup === 'string' ? subgroup : undefined,
       sourceType: typeof sourceType === 'string' ? sourceType : undefined,
       keyword: typeof keyword === 'string' ? keyword : undefined,
-      excludedSources: excludedSet(profile)
+      ...scopeOf(profile)
     });
 
     // マイニュースは関心プロフィールに一致する記事を関連度順に、それ以外は新しい順に返す。
     // どちらの場合も、どの関心トピックに一致したかを添える
-    const withSummaries = await withStoredSummaries(filtered);
+    const withSummaries = await withStoredSummaries(filtered.map(item => withPrimaryCategory(item, profile.categories)));
     // 埋め込みモデルが使えない場合は null になり、キーワードだけで判定する
     const semantic = await prepareSemanticScorer(semanticQueries(profile));
     const ranked = forYou === '1'

@@ -93,7 +93,9 @@ export const officialFeeds: FeedSource[] = [
       [/\/en\/global-affairs\//, '国際'],
       [/\/en\/(innovation-science-economic-development|radio-television-telecommunications)\//, 'テクノロジー'],
       [/\/en\/(department-finance|competition-bureau|[a-z-]*economic-development[a-z-]*|fednor|treasury-board-secretariat)\//, '経済'],
-      [/\/en\/(health-canada|public-health|employment-social-development|immigration-refugees-citizenship|canadian-heritage|indigenous-services-canada|environment-climate-change|housing-infrastructure-communities)\//, '社会']
+      [/\/en\/(national-defence|public-safety-canada|communications-security-establishment|security-intelligence-service|canada-border-services-agency)\//, '安全保障'],
+      [/\/en\/canadian-heritage\//, '文化・芸術'],
+      [/\/en\/(health-canada|public-health|employment-social-development|immigration-refugees-citizenship|indigenous-services-canada|environment-climate-change|housing-infrastructure-communities)\//, '社会']
     ]
   },
   { sourceType: 'official', category: '政治', subgroup: 'カナダ', sourceName: 'オンタリオ州政府', sourceUrl: 'https://news.ontario.ca/', feedUrl: 'https://news.ontario.ca/newsroom/en/rss/allnews.rss', label: 'Ontario Newsroom', maxItems: 15 },
@@ -104,6 +106,13 @@ export const officialFeeds: FeedSource[] = [
   // 欧州・米国のデジタル政策
   { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '欧州委員会（デジタル）', sourceUrl: 'https://digital-strategy.ec.europa.eu/', feedUrl: 'https://digital-strategy.ec.europa.eu/en/rss.xml', label: 'Shaping Europe’s digital future' },
   // Physical AI（ロボティクス）
+  // 安全保障（防衛・サイバーセキュリティ）
+  { sourceType: 'official', category: '安全保障', subgroup: '日本', sourceName: '防衛省', sourceUrl: 'https://www.mod.go.jp/', feedUrl: 'https://www.mod.go.jp/j/rss/news.xml', label: '防衛省・自衛隊 新着情報', maxItems: 10, excludeRoutine: true },
+  { sourceType: 'npo', category: '安全保障', subgroup: '日本', sourceName: 'JPCERT/CC', sourceUrl: 'https://www.jpcert.or.jp/', feedUrl: 'https://www.jpcert.or.jp/rss/jpcert.rdf', label: 'JPCERT/CC 注意喚起（サイバーセキュリティ）', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'official', category: '安全保障', subgroup: '米国', sourceName: '米国防総省', sourceUrl: 'https://www.defense.gov/', feedUrl: 'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10', label: 'U.S. Department of Defense News', maxItems: 8 },
+  { sourceType: 'official', category: '安全保障', subgroup: '米国', sourceName: 'CISA', sourceUrl: 'https://www.cisa.gov/', feedUrl: 'https://www.cisa.gov/news.xml', label: 'CISA（米サイバーセキュリティ・インフラ安全保障庁）' },
+  // 文化・芸術
+  { sourceType: 'official', category: '文化・芸術', subgroup: '米国', sourceName: '全米芸術基金', sourceUrl: 'https://www.arts.gov/', feedUrl: 'https://www.arts.gov/rss.xml', label: 'National Endowment for the Arts' },
   // 業界団体・NPO
   { sourceType: 'npo', category: '生成AI', subgroup: '米国', sourceName: 'Partnership on AI', sourceUrl: 'https://partnershiponai.org/', feedUrl: 'https://partnershiponai.org/feed/', label: 'Partnership on AI（AI の業界横断団体）' },
   { sourceType: 'npo', category: 'テクノロジー', subgroup: 'グローバル', sourceName: 'Linux Foundation', sourceUrl: 'https://www.linuxfoundation.org/press', feedUrl: 'https://www.linuxfoundation.org/press/rss.xml', label: 'Linux Foundation プレスリリース', maxItems: 10 },
@@ -118,7 +127,7 @@ export const officialFeeds: FeedSource[] = [
 ];
 
 // 見出しと説明文に含まれる語だけでカテゴリを追加する（推測による分類はしない）
-const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgroup?: '日本'; corporateOnly?: boolean }[] = [
+const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgroup?: '日本'; corporateOnly?: boolean; nonCorporate?: boolean }[] = [
   {
     // 企業の発表のうち、提携・買収・決算・事業展開・事故や不祥事など企業活動に関するもの
     category: '経済',
@@ -162,6 +171,22 @@ const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgr
     pattern: /数学|定理|予想の(証明|解決)|\b(mathematic(s|al|ian)|theorem|conjecture|proof of)\b/i
   },
   {
+    // 企業の発表は、セキュリティ製品やイベント告知の宣伝と区別できないため対象外
+    category: '安全保障',
+    nonCorporate: true,
+    pattern: /防衛|安全保障|自衛隊|ミサイル|サイバー攻撃|不正アクセス|テロ対策|\b(defen[cs]e|military|armed forces|national security|NATO|missiles?|cyber ?attacks?|cyber ?security|ransomware|counter-?terrorism|nuclear weapons?|sanctions)\b/i
+  },
+  {
+    category: '文化・芸術',
+    nonCorporate: true,
+    pattern: /文化財|文化芸術|芸術|美術|博物館|美術館|伝統芸能|映画|音楽|文学|(?<![-\w])(arts?|artists?|cultural|culture|museums?|heritage|galler(y|ies)|theatre|theater|literature|jazz|orchestra)(?![-\w])/i
+  },
+  {
+    category: 'イベント',
+    nonCorporate: true,
+    pattern: /イベント|フェスティバル|展覧会|博覧会|祭り|まつり|シンポジウム|カンファレンス|\b(festivals?|parade|concerts?|celebrat(e|es|ion)|grand (re)?opening|exhibitions?|expo|(?<!press |news )conference|symposium|Oktoberfest|open house|(community|free|family|upcoming|special|public) events?)\b/i
+  },
+  {
     category: '国際',
     pattern: /首脳|外相|外務大臣|国連|G7|G20|ASEAN|APEC|大使|国際機関|二国間/,
     subgroup: '日本'
@@ -203,7 +228,7 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
 ];
 
 // 公的機関の発表のうち、ニュース性の低い定型的なお知らせ（入札結果、採用募集など）
-const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券/;
+const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券|^Weekly Report:/;
 // 自治体の発表のうち、日々の定型的なお知らせ（通行止め、水道管の破損、施設の休業、撮影の告知など）
 const LOCAL_ROUTINE_NOTICE = /^(road|trail|sidewalk|lane) closures?\b|road closures report|watermain break|filming notification|holiday hours|closed .{0,40}for maintenance|what['’]s open and closed|committee of adjustment meeting/i;
 
@@ -260,6 +285,7 @@ function classify(source: FeedSource, title: string, summary: string, link = '')
     .filter(rule =>
       (!rule.subgroup || rule.subgroup === source.subgroup) &&
       (!rule.corporateOnly || source.sourceType === 'corporate') &&
+      (!rule.nonCorporate || source.sourceType !== 'corporate') &&
       [rule.pattern].flat().some(pattern => pattern.test(text)))
     .map(rule => rule.category);
 
@@ -633,6 +659,8 @@ export async function getNews(filters: NewsFilters = {}) {
     const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
     const bySourceType = filters.sourceType ? item.sourceType === filters.sourceType : true;
     if (filters.excludedSources?.size && filters.excludedSources.has(sourceId(item.feedUrl))) return false;
+    if (filters.regions?.length && !filters.regions.includes(item.subgroup)) return false;
+    if (filters.categories?.length && !item.categories.some(category => filters.categories!.includes(category))) return false;
     const keyword = filters.keyword?.trim().toLowerCase();
     const byKeyword = keyword
       ? [item.title, item.summary, item.sourceName, ...item.keywords, ...item.hashtags].some(value =>
@@ -642,6 +670,13 @@ export async function getNews(filters: NewsFilters = {}) {
 
     return byCategory && bySubgroup && bySourceType && byKeyword;
   });
+}
+
+/** 主カテゴリが利用者の選んだ分野にない記事は、選んだ分野のうち最初に該当するものを主カテゴリとして表示する */
+export function withPrimaryCategory<T extends NewsItem>(item: T, categories: string[]): T {
+  if (!categories.length || categories.includes(item.category)) return item;
+  const primary = item.categories.find(category => categories.includes(category));
+  return primary ? { ...item, category: primary } : item;
 }
 
 export async function getNewsById(id: string): Promise<NewsItem | undefined> {

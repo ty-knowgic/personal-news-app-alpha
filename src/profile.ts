@@ -42,6 +42,12 @@ const TopicSchema = z.object({
 
 export const ProfileSchema = z.object({
   name: z.string().max(60).default(''),
+  /** 初回の質問（地域・分野）に答えたか */
+  onboarded: z.boolean().default(false),
+  /** 受け取る国・地域（空ならすべて）。対象外の地域の情報源は取り込まない */
+  regions: z.array(z.string().max(20)).max(20).default([]),
+  /** 柱とする分野（空ならすべて）。タブの並びと、すべてのタブ・ブリーフィングの対象を決める */
+  categories: z.array(z.string().max(20)).max(30).default([]),
   topics: z.array(TopicSchema).max(30),
   /** 使わない情報源の ID（すべてのタブ・ブリーフィングから除き、誰も使わない情報源は取り込まない） */
   excludedSources: z.array(z.string().regex(/^[0-9a-f]{10}$/)).max(500).default([])
@@ -53,6 +59,9 @@ export type Topic = z.infer<typeof TopicSchema>;
 /** 初期プロフィール（ウォータールー在住、生成AI・Physical AI・日加・米欧・数学に関心のある事業開発コンサルタント） */
 const DEFAULT_PROFILE: Profile = {
   name: 'Waterloo, ON',
+  onboarded: false,
+  regions: [],
+  categories: [],
   excludedSources: [],
   topics: [
     {

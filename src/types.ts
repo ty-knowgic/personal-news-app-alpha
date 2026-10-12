@@ -1,4 +1,4 @@
-export const CATEGORIES = ['政治', '経済', '投資', '社会', '国際', 'テクノロジー', '生成AI', 'サイエンス'] as const;
+export const CATEGORIES = ['政治', '経済', '投資', '安全保障', '国際', '社会', 'テクノロジー', '生成AI', 'サイエンス', '文化・芸術', 'イベント'] as const;
 /** 地域（発信元の所在地）。グローバルは国際機関や、複数国の発表を配信する通信社など */
 export const SUBGROUPS = ['日本', 'カナダ', '米国', '欧州', 'グローバル'] as const;
 
@@ -61,6 +61,9 @@ export interface NewsFilters {
   subgroup?: string;
   sourceType?: string;
   keyword?: string;
+  /** 利用者が選んだ地域・分野（空なら限定しない） */
+  regions?: string[];
+  categories?: string[];
   /** 利用者がオフにした情報源の ID */
   excludedSources?: Set<string>;
 }

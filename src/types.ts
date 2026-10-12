@@ -1,13 +1,15 @@
-export const CATEGORIES = ['政治', '経済', '投資', '社会', '国際', 'テクノロジー', '生成AI'] as const;
-export const SUBGROUPS = ['日本', '海外'] as const;
+export const CATEGORIES = ['政治', '経済', '投資', '社会', '国際', 'テクノロジー', '生成AI', 'サイエンス'] as const;
+/** 地域（発信元の所在地）。グローバルは国際機関や、複数国の発表を配信する通信社など */
+export const SUBGROUPS = ['日本', 'カナダ', '米国', '欧州', 'グローバル'] as const;
 
 export type CategoryKey = (typeof CATEGORIES)[number];
 export type SubgroupKey = (typeof SUBGROUPS)[number];
 
-export type SourceType = 'official' | 'corporate';
+/** 公的機関 / 企業 / 研究機関 / 報道機関（一次情報の配信がない地域ニュースなどに限って使う） */
+export const SOURCE_TYPES = ['official', 'corporate', 'research', 'media'] as const;
+export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export interface FeedSource {
-  /** 公的機関（official）か、企業の発表（corporate）か */
   sourceType: SourceType;
   /** フィードの既定カテゴリ。省略した場合はキーワード規則に一致した記事だけを取り込む */
   category?: CategoryKey;
@@ -24,6 +26,8 @@ export interface FeedSource {
   excludeRoutine?: boolean;
   /** フィードが言語情報を持つ場合、取り込む言語（例: ['en', 'ja']） */
   languages?: string[];
+  /** 記事の URL からカテゴリを決める規則（カナダ政府の全省庁フィードのように、記事ごとに担当省庁が異なる場合） */
+  categoryByUrl?: [RegExp, CategoryKey][];
 }
 
 export interface NewsItem {
@@ -48,6 +52,8 @@ export interface NewsItem {
 }
 
 export interface NewsFilters {
+  /** マイニュース（関心プロフィールに一致する記事を関連度順に並べる） */
+  forYou?: boolean;
   category?: string;
   subgroup?: string;
   sourceType?: string;

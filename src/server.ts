@@ -2,7 +2,8 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
-import { getNews, getNewsById, listCategoryGroups, loadNews } from './newsPipeline.js';
+import { getNews, getNewsById, listCategoryGroups, listFilterOptions, loadNews } from './newsPipeline.js';
+import { defaultProfile, loadProfile, matchTopics, rankForYou, saveProfile } from './profile.js';
 import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
 import type { NewsItem } from './types.js';
 
@@ -12,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', version: 'alpha' });
@@ -30,26 +32,55 @@ async function withStoredSummaries(items: NewsItem[]) {
   });
 }
 
+app.get('/api/filters', (_req, res) => {
+  res.json(listFilterOptions());
+});
+
+// 関心プロフィール（現在は1人分。複数ユーザー化の際はログイン中のユーザー ID で切り替える）
+app.get('/api/profile', async (_req, res) => {
+  res.json(await loadProfile());
+});
+
+app.put('/api/profile', async (req, res) => {
+  try {
+    res.json(await saveProfile(req.body));
+  } catch (error) {
+    res.status(400).json({ error: `プロフィールの形式が正しくありません: ${(error as Error).message.slice(0, 300)}` });
+  }
+});
+
+app.post('/api/profile/reset', async (_req, res) => {
+  res.json(await saveProfile(defaultProfile()));
+});
+
 app.get('/api/categories', (_req, res) => {
   res.json(listCategoryGroups());
 });
 
 app.get('/api/news', async (req, res) => {
-  const { category, subgroup, sourceType, keyword, offset, limit } = req.query;
+  const { forYou, category, subgroup, sourceType, keyword, offset, limit } = req.query;
 
   try {
-    const result = await getNews({
+    const filtered = await getNews({
       category: typeof category === 'string' ? category : undefined,
       subgroup: typeof subgroup === 'string' ? subgroup : undefined,
       sourceType: typeof sourceType === 'string' ? sourceType : undefined,
       keyword: typeof keyword === 'string' ? keyword : undefined
     });
 
+    // マイニュースは関心プロフィールに一致する記事を関連度順に、それ以外は新しい順に返す。
+    // どちらの場合も、どの関心トピックに一致したかを添える
+    const profile = await loadProfile();
+    const withSummaries = await withStoredSummaries(filtered);
+    const result = forYou === '1'
+      ? rankForYou(withSummaries, profile)
+      : withSummaries.map(item => ({ ...item, matches: matchTopics(item, profile) }));
+
     // 蓄積データが多くなっても端末側の負荷が増えないよう、ページ単位で返す
     const start = Math.max(0, Number(offset) || 0);
     const size = Math.min(200, Math.max(1, Number(limit) || 200));
     res.set('X-Total-Count', String(result.length));
-    res.json(await withStoredSummaries(result.slice(start, start + size)));
+    res.json(result.slice(start, start + size));
 
     // 最新記事の要約を裏で進める（抽出型は自動、LLM は AUTO_SUMMARY_LIMIT の件数まで）
     void loadNews().then(summarizeLatestInBackground).catch(error => console.error('[summary]', error));

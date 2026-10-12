@@ -13,13 +13,19 @@ const detailView = document.getElementById('detailView');
 const backButton = document.getElementById('backButton');
 const shareButton = document.getElementById('shareButton');
 const todayEl = document.getElementById('today');
+const settingsView = document.getElementById('settingsView');
+const settingsButton = document.getElementById('settingsButton');
 
 const ALL_TAB = '';
+// 関心プロフィールに一致する記事を関連度順に並べるタブ
+const FOR_YOU_TAB = '__for_you';
+const SOURCE_TYPE_LABELS = { official: '公的機関', corporate: '企業', research: '研究機関', media: '報道機関' };
+const SOURCE_BADGES = { corporate: '企業', research: '研究', media: '報道' };
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
 
 const state = {
-  tab: ALL_TAB,
+  tab: FOR_YOU_TAB,
   // タブごとに地域の選択を覚えておく
   subgroupByTab: {},
   // 発信元の種別（企業 / 公的機関）もタブごとに覚えておく
@@ -116,6 +122,10 @@ function primaryCategory(item) {
   return state.tab && item.categories?.includes(state.tab) ? state.tab : item.category;
 }
 
+function isForYou() {
+  return state.tab === FOR_YOU_TAB;
+}
+
 function showToast(message) {
   const toast = document.createElement('div');
   toast.className = 'toast';
@@ -137,7 +147,7 @@ function restoreListState() {
   try {
     const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? 'null');
     if (saved) {
-      state.tab = saved.tab ?? ALL_TAB;
+      state.tab = saved.tab ?? FOR_YOU_TAB;
       state.subgroupByTab = saved.subgroupByTab ?? {};
       state.sourceTypeByTab = saved.sourceTypeByTab ?? {};
     }
@@ -149,8 +159,12 @@ function restoreListState() {
 // ---------- タブ ----------
 
 function renderTabs(categories) {
-  const tabs = [{ value: ALL_TAB, label: 'トップ', cat: 'all' }, ...categories.map(c => ({ value: c, label: c, cat: c }))];
-  if (!tabs.some(tab => tab.value === state.tab)) state.tab = ALL_TAB;
+  const tabs = [
+    { value: FOR_YOU_TAB, label: 'マイニュース', cat: 'foryou' },
+    { value: ALL_TAB, label: 'すべて', cat: 'all' },
+    ...categories.map(c => ({ value: c, label: c, cat: c }))
+  ];
+  if (!tabs.some(tab => tab.value === state.tab)) state.tab = FOR_YOU_TAB;
 
   tabsEl.innerHTML = tabs.map(tab => `
     <button class="tab" type="button" role="tab" data-tab="${escapeHtml(tab.value)}" data-cat="${escapeHtml(tab.cat)}"
@@ -177,6 +191,13 @@ function selectTab(value) {
   refreshNews();
 }
 
+function renderFilterOptions(filters) {
+  subgroupFilter.innerHTML = ['<option value="">すべての地域</option>',
+    ...filters.regions.map(region => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`)].join('');
+  sourceTypeFilter.innerHTML = ['<option value="">すべての発信元</option>',
+    ...filters.sourceTypes.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)}</option>`)].join('');
+}
+
 function syncFilterControls() {
   subgroupFilter.value = state.subgroupByTab[state.tab] ?? '';
   sourceTypeFilter.value = state.sourceTypeByTab[state.tab] ?? '';
@@ -200,6 +221,14 @@ function cardSummary(item) {
   return item.summary ? `<p class="card-summary">${escapeHtml(item.summary)}</p>` : '';
 }
 
+// どの関心トピックに一致したか（「なぜこの記事が表示されているか」）を示す
+function matchChips(item) {
+  if (!item.matches?.length) return '';
+  return `<span class="match-chips" aria-label="関心: ${escapeHtml(item.matches.map(m => m.label).join('、'))}">${
+    item.matches.slice(0, 3).map(match => `<span class="match-chip">${escapeHtml(match.label)}</span>`).join('')
+  }</span>`;
+}
+
 function renderHero(item) {
   const category = primaryCategory(item);
   const summary = item.ai?.summary || item.summary;
@@ -210,7 +239,7 @@ function renderHero(item) {
         <span class="cat-pill">${escapeHtml(category)}・${escapeHtml(item.subgroup)}</span>
         <h2 class="hero-title">${escapeHtml(displayTitle(item))}</h2>
         ${summary ? `<p class="hero-summary">${escapeHtml(summary)}</p>` : ''}
-        <div class="hero-meta">${escapeHtml(item.sourceName)} · ${escapeHtml(formatRelative(item.publishedAt))}</div>
+        <div class="hero-meta">${escapeHtml(item.sourceName)} · ${escapeHtml(formatRelative(item.publishedAt))}${item.matches?.length ? ` · ${escapeHtml(item.matches.map(m => m.label).join('・'))}` : ''}</div>
       </div>
     </a>
   `;
@@ -230,11 +259,14 @@ function renderCard(item) {
           <span class="cat-label">${item.isSample ? 'サンプル' : `${escapeHtml(category)}・${escapeHtml(item.subgroup)}`}</span>
           <span class="sep" aria-hidden="true"></span>
           <span class="source">${escapeHtml(item.sourceName)}</span>
-          ${item.sourceType === 'corporate' ? '<span class="source-badge">企業</span>' : ''}
+          ${SOURCE_BADGES[item.sourceType] ? `<span class="source-badge">${SOURCE_BADGES[item.sourceType]}</span>` : ''}
         </div>
         <h3 class="card-title">${escapeHtml(displayTitle(item))}</h3>
         ${cardSummary(item)}
-        <div class="card-foot"><time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatRelative(item.publishedAt))}</time></div>
+        <div class="card-foot">
+          <time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatRelative(item.publishedAt))}</time>
+          ${matchChips(item)}
+        </div>
       </div>
       ${media}
     </a>
@@ -252,7 +284,8 @@ function renderItems(items, lastDay, withHero) {
   items.forEach((item, index) => {
     if (index === heroIndex) return;
     const key = dayKey(item.publishedAt);
-    if (key !== currentDay) {
+    // マイニュースは関連度順のため、日付の見出しは付けない
+    if (!isForYou() && key !== currentDay) {
       const label = dayLabel(item.publishedAt);
       html += `<h2 class="day-heading">${escapeHtml(label.main)}${label.sub ? `<small>${escapeHtml(label.sub)}</small>` : ''}</h2>`;
       currentDay = key;
@@ -266,11 +299,14 @@ let lastRenderedDay = null;
 
 function renderNews() {
   if (!state.items.length) {
-    const sourceLabel = { corporate: '企業', official: '公的機関' }[state.sourceTypeByTab[state.tab]];
-    const scope = [state.tab || 'すべてのカテゴリ', state.subgroupByTab[state.tab], sourceLabel].filter(Boolean).join('・');
+    const sourceLabel = SOURCE_TYPE_LABELS[state.sourceTypeByTab[state.tab]];
+    const tabLabel = isForYou() ? 'マイニュース' : state.tab || 'すべてのカテゴリ';
+    const scope = [tabLabel, state.subgroupByTab[state.tab], sourceLabel].filter(Boolean).join('・');
     newsList.innerHTML = state.keyword
       ? `<div class="empty-state"><strong>「${escapeHtml(state.keyword)}」に一致する記事はありません</strong>別のキーワードをお試しください。</div>`
-      : `<div class="empty-state"><strong>まだ記事がありません</strong>${escapeHtml(scope)}の新しい発表が出ると、ここに表示されます。</div>`;
+      : isForYou()
+        ? `<div class="empty-state"><strong>関心に一致する記事がまだありません</strong><a href="#/settings">マイニュースの設定</a>で関心トピックやキーワードを追加できます。</div>`
+        : `<div class="empty-state"><strong>まだ記事がありません</strong>${escapeHtml(scope)}の新しい発表が出ると、ここに表示されます。</div>`;
     moreButton.hidden = true;
     return;
   }
@@ -299,7 +335,8 @@ function renderSkeleton() {
 async function fetchNewsPage(offset) {
   const params = new URLSearchParams({ offset: String(offset), limit: String(PAGE_SIZE) });
   const subgroup = state.subgroupByTab[state.tab];
-  if (state.tab) params.set('category', state.tab);
+  if (isForYou()) params.set('forYou', '1');
+  else if (state.tab) params.set('category', state.tab);
   if (subgroup) params.set('subgroup', subgroup);
   const sourceType = state.sourceTypeByTab[state.tab];
   if (sourceType) params.set('sourceType', sourceType);
@@ -574,6 +611,7 @@ async function loadSummary(id) {
 async function showDetail(id) {
   document.body.classList.add('is-detail');
   listView.hidden = true;
+  settingsView.hidden = true;
   detailView.hidden = false;
   backButton.hidden = false;
   shareButton.hidden = false;
@@ -625,6 +663,8 @@ function showList() {
   document.body.classList.remove('is-detail');
   currentDetail = null;
   detailView.hidden = true;
+  settingsView.hidden = true;
+  settingsView.innerHTML = '';
   detailView.innerHTML = '';
   listView.hidden = false;
   backButton.hidden = true;
@@ -682,11 +722,171 @@ detailView.addEventListener('click', (event) => {
   refreshNews();
 });
 
+
+// ---------- マイニュースの設定 ----------
+
+const WEIGHT_OPTIONS = [
+  { value: 0.6, label: '低' },
+  { value: 1, label: '中' },
+  { value: 1.6, label: '高' },
+  { value: 2.2, label: '最優先' }
+];
+
+let profileDraft = null;
+
+function nearestWeight(weight) {
+  return WEIGHT_OPTIONS.reduce((best, option) => (Math.abs(option.value - weight) < Math.abs(best.value - weight) ? option : best)).value;
+}
+
+function splitKeywords(text) {
+  return [...new Set(text.split(/[\n,、]/).map(word => word.trim()).filter(Boolean))];
+}
+
+function renderTopicEditor(topic, index) {
+  const weight = nearestWeight(topic.weight);
+  const conditions = [
+    topic.alsoRequires?.length ? `さらに「${topic.alsoRequires.slice(0, 4).join('・')}${topic.alsoRequires.length > 4 ? '…' : ''}」のいずれかを含む` : '',
+    topic.regions?.length ? `地域: ${topic.regions.join('・')}` : '',
+    topic.sourceTypes?.length ? `発信元: ${topic.sourceTypes.map(type => SOURCE_TYPE_LABELS[type] ?? type).join('・')}` : '',
+    topic.sources?.length ? `常に対象: ${topic.sources.join('・')}` : '',
+    topic.boostOnly ? '単独では表示せず、他の関心と重なる記事を上位にする' : ''
+  ].filter(Boolean);
+
+  return `
+    <section class="topic-editor${topic.enabled ? '' : ' is-disabled'}" data-index="${index}">
+      <div class="topic-head">
+        <label class="switch">
+          <input type="checkbox" data-field="enabled" ${topic.enabled ? 'checked' : ''}>
+          <span class="switch-track" aria-hidden="true"></span>
+          <span class="visually-hidden">有効</span>
+        </label>
+        <input class="topic-label" data-field="label" value="${escapeHtml(topic.label)}" maxlength="40" aria-label="トピック名">
+        <button class="icon-button topic-delete" type="button" data-action="delete-topic" aria-label="このトピックを削除">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>
+        </button>
+      </div>
+      <div class="segmented" role="radiogroup" aria-label="優先度">
+        ${WEIGHT_OPTIONS.map(option => `
+          <label class="segment">
+            <input type="radio" name="weight-${index}" data-field="weight" value="${option.value}" ${option.value === weight ? 'checked' : ''}>
+            <span>${option.label}</span>
+          </label>`).join('')}
+      </div>
+      <label class="field">
+        <span>キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）</span>
+        <textarea data-field="keywords" rows="3">${escapeHtml(topic.keywords.join(', '))}</textarea>
+      </label>
+      ${conditions.length ? `<p class="topic-conditions">${conditions.map(escapeHtml).join('<br>')}</p>` : ''}
+    </section>
+  `;
+}
+
+function renderSettings() {
+  settingsView.innerHTML = `
+    <h1 class="settings-title">マイニュースの設定</h1>
+    <p class="settings-lead">関心のあるトピックとキーワードを登録すると、見出し・本文に一致する記事を関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。</p>
+    <div id="topicList">${profileDraft.topics.map(renderTopicEditor).join('')}</div>
+    <button class="add-topic" type="button" data-action="add-topic">＋ トピックを追加</button>
+    <div class="settings-actions">
+      <button class="secondary-button" type="button" data-action="reset-profile">初期設定に戻す</button>
+      <button class="primary-action" type="button" data-action="save-profile">保存</button>
+    </div>
+  `;
+}
+
+// 入力欄の内容を下書きに反映する（再描画の前に呼ぶ）
+function collectSettings() {
+  settingsView.querySelectorAll('.topic-editor').forEach((editor) => {
+    const topic = profileDraft.topics[Number(editor.dataset.index)];
+    topic.enabled = editor.querySelector('[data-field="enabled"]').checked;
+    topic.label = editor.querySelector('[data-field="label"]').value.trim() || topic.label;
+    topic.weight = Number(editor.querySelector('[data-field="weight"]:checked')?.value ?? topic.weight);
+    topic.keywords = splitKeywords(editor.querySelector('[data-field="keywords"]').value);
+  });
+}
+
+async function showSettings() {
+  document.body.classList.add('is-detail');
+  listView.hidden = true;
+  detailView.hidden = true;
+  settingsView.hidden = false;
+  backButton.hidden = false;
+  shareButton.hidden = true;
+  document.title = 'マイニュースの設定 | Personal News';
+  window.scrollTo(0, 0);
+  settingsView.innerHTML = '<div class="empty-state">読み込み中…</div>';
+  try {
+    profileDraft = await (await fetch('/api/profile')).json();
+    renderSettings();
+  } catch {
+    settingsView.innerHTML = '<div class="empty-state"><strong>設定を読み込めませんでした</strong>通信状況を確認してください。</div>';
+  }
+}
+
+settingsView.addEventListener('change', (event) => {
+  if (event.target.matches('[data-field="enabled"]')) {
+    event.target.closest('.topic-editor').classList.toggle('is-disabled', !event.target.checked);
+  }
+});
+
+settingsView.addEventListener('click', async (event) => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (!action || !profileDraft) return;
+
+  if (action === 'add-topic') {
+    collectSettings();
+    profileDraft.topics.push({
+      id: `custom-${Date.now().toString(36)}`, label: '新しいトピック', enabled: true, weight: 1, keywords: [],
+      alsoRequires: [], alsoRequiresRegions: [], regions: [], sourceTypes: [], sources: [], boostOnly: false
+    });
+    renderSettings();
+    settingsView.querySelector('.topic-editor:last-of-type .topic-label')?.select();
+  } else if (action === 'delete-topic') {
+    collectSettings();
+    const index = Number(event.target.closest('.topic-editor').dataset.index);
+    profileDraft.topics.splice(index, 1);
+    renderSettings();
+  } else if (action === 'reset-profile') {
+    if (!confirm('関心トピックを初期設定に戻しますか？')) return;
+    profileDraft = await (await fetch('/api/profile/reset', { method: 'POST' })).json();
+    renderSettings();
+    showToast('初期設定に戻しました');
+  } else if (action === 'save-profile') {
+    collectSettings();
+    profileDraft.topics = profileDraft.topics.filter(topic => topic.keywords.length || topic.sources?.length);
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileDraft)
+    });
+    if (!response.ok) {
+      showToast((await response.json().catch(() => ({}))).error ?? '保存できませんでした');
+      return;
+    }
+    showToast('保存しました');
+    state.tab = FOR_YOU_TAB;
+    saveListState();
+    tabsEl.querySelectorAll('.tab').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === FOR_YOU_TAB)));
+    state.items = [];
+    listScrollY = 0;
+    location.hash = '#/';
+    refreshNews();
+  }
+});
+
+settingsButton.addEventListener('click', () => {
+  listScrollY = window.scrollY;
+  openedFromList = true;
+  location.hash = '#/settings';
+});
+
 // ---------- ルーティング ----------
 
 function route() {
   const match = location.hash.match(/^#\/article\/([^/?#]+)/);
-  if (match) {
+  if (location.hash === '#/settings') {
+    showSettings();
+  } else if (match) {
     showDetail(decodeURIComponent(match[1]));
   } else {
     showList();
@@ -701,7 +901,7 @@ window.addEventListener('hashchange', route);
   restoreListState();
 
   const [categories] = await Promise.all([
-    fetch('/api/categories').then(r => r.json()).then(groups => groups.map(g => g.category)).catch(() => []),
+    fetch('/api/filters').then(r => r.json()).then((filters) => { renderFilterOptions(filters); return filters.categories; }).catch(() => []),
     fetch('/api/config').then(r => r.json()).then(config => { state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {})
   ]);
   renderTabs(categories);

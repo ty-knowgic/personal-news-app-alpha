@@ -2,9 +2,10 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
-import { embedItemsInBackground, getEmbeddingStatus, prepareSemanticScorer } from './embeddings.js';
-import { getNews, getNewsById, listCategoryGroups, listFilterOptions, loadNews } from './newsPipeline.js';
+import { embedItemsInBackground, getEmbeddingStatus, loadItemVectors, prepareSemanticScorer } from './embeddings.js';
+import { cleanFeedText, getNews, getNewsById, listCategoryGroups, listFilterOptions, loadNews } from './newsPipeline.js';
 import { defaultProfile, loadProfile, matchTopics, rankForYou, saveProfile, semanticQueries } from './profile.js';
+import { buildStoryIndex, findRelated, groupStories } from './stories.js';
 import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
 import type { NewsItem } from './types.js';
 
@@ -45,6 +46,21 @@ async function embedAllInBackground() {
   } catch (error) {
     console.error('[embeddings]', error);
   }
+}
+
+/**
+ * 表示順の記事を話題ごとにまとめる。マイニュースでは、複数の発信元が伝えている話題を少し上位にする
+ * （官公庁の発表と報道の両方がある、など。同じ発信元の続報は数えない）
+ */
+async function groupForDisplay<T extends NewsItem & { score?: number }>(items: T[], byScore: boolean) {
+  if (!(await loadItemVectors())) return items.map(item => ({ ...item, related: [] }));
+  const grouped = groupStories(items, buildStoryIndex(await loadNews()));
+  if (!byScore) return grouped;
+  const coverage = (item: (typeof grouped)[number]) => new Set([item.sourceName, ...item.related.map(related => related.sourceName)]).size;
+  return grouped
+    .map(item => ({ item, score: (item.score ?? 0) * (1 + 0.25 * Math.min(2, coverage(item) - 1)) }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ item }) => item);
 }
 
 app.get('/api/filters', (_req, res) => {
@@ -89,9 +105,11 @@ app.get('/api/news', async (req, res) => {
     const withSummaries = await withStoredSummaries(filtered);
     // 埋め込みモデルが使えない場合は null になり、キーワードだけで判定する
     const semantic = await prepareSemanticScorer(semanticQueries(profile));
-    const result = forYou === '1'
+    const ranked = forYou === '1'
       ? rankForYou(withSummaries, profile, semantic)
       : withSummaries.map(item => ({ ...item, matches: matchTopics(item, profile, semantic) }));
+    // 同じ出来事の発表・報道は1枚のカードにまとめる（埋め込みが使えない場合はまとめない）
+    const result = await groupForDisplay(ranked, forYou === '1');
 
     // 蓄積データが多くなっても端末側の負荷が増えないよう、ページ単位で返す
     const start = Math.max(0, Number(offset) || 0);
@@ -109,6 +127,84 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+/** 要約（なければ説明文）の最初の一文を、ブリーフィング用の短い説明にする */
+function firstSentence(text: string, max = 90): string {
+  const clean = cleanFeedText(text);
+  const match = clean.match(/^.+?(?:。|[.!?](?=\s|$))/);
+  const sentence = match ? match[0] : clean;
+  return sentence.length > max ? `${sentence.slice(0, max - 1)}…` : sentence;
+}
+
+/**
+ * 今日のブリーフィング: マイニュースのうち直近の話題から、関心トピックが偏らないよう最大5件を選ぶ。
+ * 文章は記事の要約・説明文から取り出すだけで、生成AIは使わない
+ */
+app.get('/api/briefing', async (_req, res) => {
+  try {
+    const profile = await loadProfile();
+    const semantic = await prepareSemanticScorer(semanticQueries(profile));
+    const items = await withStoredSummaries(await loadNews());
+    const stories = await groupForDisplay(rankForYou(items, profile, semantic), true);
+    const boostOnly = new Set(profile.topics.filter(topic => topic.boostOnly).map(topic => topic.id));
+    const MAX_PER_TOPIC = 2;
+
+    // 週末など新しい記事が少ない場合は、対象期間を広げる（関心トピックが偏らずに5件選べるまで）
+    const within = (hours: number) => stories.filter(story => Date.now() - new Date(story.publishedAt).getTime() <= hours * 3_600_000);
+    const pick = (candidates: typeof stories) => {
+      const perTopic = new Map<string, number>();
+      const picked: typeof stories = [];
+      for (const story of candidates) {
+        // 本文で触れているだけ・内容の近さが弱いなど、一致の弱い記事はブリーフィングには載せない
+        if (!story.matches.some(match => !boostOnly.has(match.id) && match.strength >= 0.75)) continue;
+        const topic = story.matches.find(match => !boostOnly.has(match.id))?.id ?? '';
+        if ((perTopic.get(topic) ?? 0) >= MAX_PER_TOPIC) continue;
+        perTopic.set(topic, (perTopic.get(topic) ?? 0) + 1);
+        picked.push(story);
+        if (picked.length >= 5) break;
+      }
+      return picked;
+    };
+    let windowHours = 24;
+    let recent = within(windowHours);
+    let picked = pick(recent);
+    for (const hours of [48, 72]) {
+      if (picked.length >= 5) break;
+      windowHours = hours;
+      recent = within(hours);
+      picked = pick(recent);
+    }
+
+    // 関心トピックごとの話題数（「生成AI 12件」のように、全体の動きを一目で見られるように）
+    const topicCounts = profile.topics
+      .filter(topic => topic.enabled && !topic.boostOnly)
+      .map(topic => ({ id: topic.id, label: topic.label, count: recent.filter(story => story.matches.some(match => match.id === topic.id)).length }))
+      .filter(topic => topic.count > 0)
+      .sort((a, b) => b.count - a.count);
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      windowHours,
+      storyCount: recent.length,
+      topics: topicCounts,
+      stories: picked.map(story => ({
+        id: story.id,
+        title: ('ai' in story && story.ai?.headlineJa) || story.title,
+        line: firstSentence(('ai' in story && story.ai?.summary) || story.summary),
+        category: story.category,
+        subgroup: story.subgroup,
+        sourceName: story.sourceName,
+        sourceType: story.sourceType,
+        publishedAt: story.publishedAt,
+        matches: story.matches,
+        related: story.related
+      }))
+    });
+  } catch (error) {
+    console.error('[api/briefing]', error);
+    res.status(500).json({ error: 'ブリーフィングを作成できませんでした。' });
+  }
+});
+
 // 記事詳細: 一覧の情報に加えて、発信元ページから抽出した冒頭部分（概要）を返す
 app.get('/api/news/:id', async (req, res) => {
   try {
@@ -123,8 +219,11 @@ app.get('/api/news/:id', async (req, res) => {
       : await fetchArticleContent(item.sourceUrl);
 
     const summaries = await getStoredSummaries();
+    const allItems = await loadNews();
+    const related = (await loadItemVectors()) ? findRelated(item, allItems, buildStoryIndex(allItems)) : [];
     res.json({
       item,
+      related,
       summary: summaries.get(item.id) ?? null,
       summaryEnabled: true,
       // 見出しと同じ段落は詳細画面で重複するため除く（キャッシュ側は書き換えない）

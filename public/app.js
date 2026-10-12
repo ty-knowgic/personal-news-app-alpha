@@ -49,6 +49,7 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 const ICONS = {
   sparkle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   quote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4H8a1 1 0 0 0-1 1v4"/><path d="M15 7h4v4h-3a1 1 0 0 0-1 1v4"/></svg>',
+  stack: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 16l8 4 8-4"/></svg>',
   external: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
 };
 
@@ -232,6 +233,62 @@ function matchChips(item) {
   }</span>`;
 }
 
+// 同じ話題の発表・報道がまとめられている場合、「ほか◯件」と主な発信元を示す
+function relatedLine(item) {
+  const related = item.related ?? [];
+  if (!related.length) return '';
+  const others = [...new Set(related.map(r => r.sourceName).filter(name => name !== item.sourceName))];
+  const sources = others.length ? `${others.slice(0, 2).join('・')}${others.length > 2 ? ' など' : ''}` : '同じ発信元の続報';
+  return `<div class="related-line">${ICONS.stack}<span class="related-count">関連 ${related.length}件</span><span class="related-sources">${escapeHtml(sources)}</span></div>`;
+}
+
+// ---------- ブリーフィング（マイニュースの先頭） ----------
+
+function showBriefing() {
+  return isForYou() && !state.keyword && !state.subgroupByTab[state.tab] && !state.sourceTypeByTab[state.tab];
+}
+
+function renderBriefing(briefing) {
+  if (!briefing?.stories?.length) return '';
+  const period = briefing.windowHours <= 24 ? '過去24時間' : `過去${briefing.windowHours}時間`;
+  const title = briefing.windowHours <= 24 ? '今日のブリーフィング' : '最近のブリーフィング';
+  return `
+    <section class="briefing" aria-label="${title}">
+      <div class="briefing-head">
+        <span class="briefing-kicker">BRIEFING</span>
+        <h2 class="briefing-title">${title}</h2>
+        <p class="briefing-sub">${period}に、あなたの関心に一致した ${briefing.storyCount}件の話題から</p>
+      </div>
+      <ol class="briefing-list">
+        ${briefing.stories.map((story, index) => `
+          <li>
+            <a class="briefing-item" href="#/article/${encodeURIComponent(story.id)}" data-id="${escapeHtml(story.id)}">
+              <span class="briefing-num" aria-hidden="true">${index + 1}</span>
+              <span class="briefing-body">
+                <span class="briefing-item-title">${escapeHtml(story.title)}</span>
+                ${story.line ? `<span class="briefing-line">${escapeHtml(story.line)}</span>` : ''}
+                <span class="briefing-meta">${escapeHtml(story.sourceName)}${story.related?.length ? ` ほか${story.related.length}件` : ''} · ${escapeHtml(formatRelative(story.publishedAt))}${matchChips(story)}</span>
+              </span>
+            </a>
+          </li>`).join('')}
+      </ol>
+      ${briefing.topics?.length ? `
+        <div class="briefing-topics" aria-label="関心トピックごとの話題数">
+          ${briefing.topics.map(topic => `<span class="briefing-topic">${escapeHtml(topic.label)} <b>${topic.count}</b></span>`).join('')}
+        </div>` : ''}
+    </section>
+  `;
+}
+
+async function fetchBriefing() {
+  try {
+    const response = await fetch('/api/briefing');
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 function renderHero(item) {
   const category = primaryCategory(item);
   const summary = item.ai?.summary || item.summary;
@@ -270,6 +327,7 @@ function renderCard(item) {
           <time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatRelative(item.publishedAt))}</time>
           ${matchChips(item)}
         </div>
+        ${relatedLine(item)}
       </div>
       ${media}
     </a>
@@ -314,9 +372,12 @@ function renderNews() {
     return;
   }
 
-  const rendered = renderItems(state.items, null, !state.keyword);
+  const briefingHtml = showBriefing() ? renderBriefing(state.briefing) : '';
+  const rendered = renderItems(state.items, null, !state.keyword && !briefingHtml);
   lastRenderedDay = rendered.lastDay;
-  newsList.innerHTML = rendered.html;
+  newsList.innerHTML = briefingHtml
+    ? `${briefingHtml}<h2 class="day-heading">すべてのマイニュース</h2>${rendered.html}`
+    : rendered.html;
   moreButton.hidden = state.items.length >= state.total;
 }
 
@@ -366,8 +427,9 @@ async function refreshNews() {
   renderSkeleton();
 
   try {
-    const page = await fetchNewsPage(0);
+    const [page, briefing] = await Promise.all([fetchNewsPage(0), showBriefing() ? fetchBriefing() : null]);
     if (seq !== requestSeq) return;
+    state.briefing = briefing;
     state.items = page.items;
     state.total = page.total;
     renderNews();
@@ -446,7 +508,7 @@ searchToggle.addEventListener('click', () => {
 });
 
 newsList.addEventListener('click', (event) => {
-  if (event.target.closest('.card, .hero')) {
+  if (event.target.closest('.card, .hero, .briefing-item')) {
     listScrollY = window.scrollY;
     openedFromList = true;
   }
@@ -539,6 +601,25 @@ function renderExcerpt(detail) {
   `;
 }
 
+// 同じ出来事についての、ほかの発信元の発表・報道
+function renderRelated(related) {
+  if (!related?.length) return '';
+  return `
+    <section class="related" aria-label="関連する発表・報道">
+      <h2 class="related-title">関連する発表・報道</h2>
+      <ul class="related-list">
+        ${related.map(r => `
+          <li>
+            <a href="#/article/${encodeURIComponent(r.id)}">
+              <span class="related-source">${escapeHtml(r.sourceName)}${SOURCE_BADGES[r.sourceType] ? `<span class="source-badge">${SOURCE_BADGES[r.sourceType]}</span>` : ''} · ${escapeHtml(formatRelative(r.publishedAt))}</span>
+              <span class="related-item-title">${escapeHtml(r.title)}</span>
+            </a>
+          </li>`).join('')}
+      </ul>
+    </section>
+  `;
+}
+
 function renderDetail() {
   const detail = currentDetail;
   if (!detail) return;
@@ -570,6 +651,7 @@ function renderDetail() {
     ${image ? `<figure class="detail-image"><img src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.remove()"></figure>` : ''}
     ${renderAiCard(detail)}
     ${renderExcerpt(detail)}
+    ${renderRelated(detail.related)}
     <div class="tags">
       ${item.hashtags.map(tag => `<button class="tag" type="button" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join('')}
     </div>
@@ -637,7 +719,7 @@ async function showDetail(id) {
     if (!isCurrentDetail(id)) return;
 
     itemsById.set(data.item.id, { ...known, ...data.item });
-    Object.assign(currentDetail, { item: data.item, content: data.content, summary: data.summary });
+    Object.assign(currentDetail, { item: data.item, content: data.content, summary: data.summary, related: data.related ?? [] });
     document.title = `${data.summary?.headlineJa || data.item.title} | Personal News`;
 
     if (data.summary) {

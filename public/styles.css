@@ -423,6 +423,7 @@ main {
 @media (min-width: 900px) {
   .news-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .news-list > .hero,
+  .news-list > .briefing,
   .news-list > .day-heading,
   .news-list > .empty-state { grid-column: 1 / -1; }
 }
@@ -1287,3 +1288,214 @@ main {
   background: var(--surface);
   color: var(--text-2);
 }
+
+/* ---------- 話題のまとめ（同じ出来事の発表・報道） ---------- */
+
+.related-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.related-line svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.related-count {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.related-sources {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related {
+  margin-top: 22px;
+  padding: 16px 18px 6px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.related-title {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.related-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-list li + li { border-top: 1px solid var(--line); }
+
+.related-list a {
+  display: grid;
+  gap: 3px;
+  padding: 11px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.related-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.related-item-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.related-list a:hover .related-item-title { color: var(--accent); }
+
+/* ---------- ブリーフィング（マイニュースの先頭） ---------- */
+
+.briefing {
+  position: relative;
+  margin-bottom: 8px;
+  padding: 20px 18px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.briefing::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--foryou);
+}
+
+.briefing-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  background: var(--foryou);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.briefing-title {
+  margin: 2px 0 2px;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.briefing-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.briefing-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.briefing-list li + li { border-top: 1px solid var(--line); }
+
+.briefing-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.briefing-num {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.briefing-list li:first-child .briefing-num {
+  background: var(--foryou);
+  color: #fff;
+}
+
+.briefing-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.briefing-item-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.briefing-item:hover .briefing-item-title { color: var(--accent); }
+
+.briefing-line {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.briefing-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.briefing-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.briefing-topic {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.briefing-topic b { margin-left: 2px; }

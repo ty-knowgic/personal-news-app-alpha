@@ -198,6 +198,9 @@ export interface TopicMatch {
   via: 'keyword' | 'semantic' | 'source';
 }
 
+/** キーワードで一致しても、類似度がしきい値よりこれ以上低ければ弱い一致とする（手元の評価では、ここより下はほとんどが誤一致） */
+const WEAK_MARGIN = 0.13;
+
 /** 類似度がしきい値ちょうどなら 0.5、しきい値より 0.1 以上高ければ 1 */
 function semanticStrength(similarity: number, threshold: number): number {
   return Math.min(1, 0.5 + (similarity - threshold) * 5);
@@ -226,9 +229,12 @@ export function matchTopics(
 
     const hit = Boolean(keywords?.test(text) || shortUpper?.test(text));
     // 見出しに関心の語がある記事は、本文で触れているだけの記事より関連が強い
-    const keywordStrength = !hit ? 0 : (keywords?.test(headline) || shortUpper?.test(headline)) ? 1 : 0.5;
+    let keywordStrength = !hit ? 0 : (keywords?.test(headline) || shortUpper?.test(headline)) ? 1 : 0.5;
     // キーワードを含まなくても、トピックの説明文と意味が近い記事は一致とする（例: 「ロボット」と書かずにロボット学習を扱う論文）
     const similarity = semantic?.similarity(item.id, topic.id);
+    // 逆に、キーワードを含んでも内容がトピックと大きく離れている記事（例: 「quantum」を含む物理学の記事が
+    // テック政策に一致）は、一致の強さを半分にする
+    if (keywordStrength && similarity !== undefined && similarity < semantic!.threshold - WEAK_MARGIN) keywordStrength /= 2;
     const meaningStrength = similarity !== undefined && similarity >= semantic!.threshold ? semanticStrength(similarity, semantic!.threshold) : 0;
 
     if (!keywordStrength && !meaningStrength) continue;
@@ -246,7 +252,7 @@ export function matchTopics(
 }
 
 /** マイニュースの並べ替え: 一致したトピックの重み × 一致の強さの合計 × 新しさ（3日で約半分になる） */
-export function rankForYou<T extends NewsItem>(items: T[], profile: Profile, semantic?: SemanticScorer | null): (T & { matches: TopicMatch[] })[] {
+export function rankForYou<T extends NewsItem>(items: T[], profile: Profile, semantic?: SemanticScorer | null): (T & { matches: TopicMatch[]; score: number })[] {
   const weights = new Map(profile.topics.map(topic => [topic.id, topic.weight]));
   const now = Date.now();
 
@@ -259,5 +265,5 @@ export function rankForYou<T extends NewsItem>(items: T[], profile: Profile, sem
       return { item, score: relevance * Math.pow(0.5, ageHours / 72) };
     })
     .sort((a, b) => b.score - a.score)
-    .map(({ item }) => item);
+    .map(({ item, score }) => ({ ...item, score }));
 }

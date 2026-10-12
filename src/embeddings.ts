@@ -191,6 +191,19 @@ export function embedItemsInBackground(items: EmbeddableItem[]): Promise<void> {
   return running;
 }
 
+/** 保存済みのベクトルを読み込む（記事のまとめなど、問い合わせなしで類似度を使う処理の前に呼ぶ） */
+export async function loadItemVectors(): Promise<boolean> {
+  if (!ENABLED) return false;
+  return (await loadStore()).size > 0;
+}
+
+/** 2つの記事の意味の近さ（どちらかが未処理なら undefined） */
+export function itemSimilarity(a: string, b: string): number | undefined {
+  const va = itemVector(a);
+  const vb = itemVector(b);
+  return va && vb && va.length === vb.length ? dot(va, vb) : undefined;
+}
+
 function itemVector(id: string): Float32Array | undefined {
   const cached = decoded.get(id);
   if (cached) return cached;

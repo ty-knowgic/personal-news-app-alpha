@@ -204,11 +204,21 @@ const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離�
 
 // 企業の発表を装った法律事務所の集団訴訟勧誘などは、企業活動の情報ではないため除外する
 // ウェビナー・セミナーの告知も、企業活動そのものの情報ではないため除外する
-const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b/i;
+// 「生成AIが選ぶ◯◯、1位は…（言及率）」のような、AI 検索向けの広告を兼ねた順位調査も除外する
+const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率/i;
+
+/** PR TIMES などの説明文に含まれる「[画像: URL]」や、先頭の「[会社名]」を取り除く */
+export function cleanFeedText(value: string): string {
+  return value
+    .replace(/\[(画像|動画)[^\]]*(\]|$)/g, ' ')
+    .replace(/^\s*\[[^\]]{1,60}\]\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function trimSummary(value: string): string {
   // 一部のフィード（欧州委員会など）は改行を「\n」という文字列のまま配信するため、空白に置き換える
-  const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\\[nrt]/g, ' ').replace(/\s+/g, ' ').trim();
+  const normalized = cleanFeedText(value.replace(/<[^>]*>/g, ' ').replace(/\\[nrt]/g, ' ').replace(/\s+/g, ' ').trim());
   if (normalized.length <= 100) {
     return normalized;
   }
@@ -418,7 +428,7 @@ async function loadArchive(): Promise<Map<string, NewsItem>> {
       if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${item.title} ${item.summary}`)) continue;
       const categories = classify(source, item.title, item.summary, item.sourceUrl);
       if (categories.length === 0) continue;
-      const refreshed = finalizeItem({ ...item, subgroup: source.subgroup, sourceName: source.sourceName, sourceType: source.sourceType }, categories);
+      const refreshed = finalizeItem({ ...item, summary: cleanFeedText(item.summary), subgroup: source.subgroup, sourceName: source.sourceName, sourceType: source.sourceType }, categories);
       archive.set(refreshed.id, refreshed);
     }
   } catch (error) {

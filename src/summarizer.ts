@@ -1,4 +1,6 @@
+import { existsSync, readdirSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
@@ -44,8 +46,29 @@ let client: Anthropic | null = null;
 let store: Map<string, ArticleSummary> | null = null;
 const inFlight = new Map<string, Promise<SummaryResult>>();
 
+// `ant auth login` で保存されたログイン情報があるか（SDK はこれを自動で使う）
+function hasLoginProfile(): boolean {
+  const configDir = process.env.ANTHROPIC_CONFIG_DIR ?? path.join(os.homedir(), '.config', 'anthropic');
+  const credentialsDir = path.join(configDir, 'credentials');
+  try {
+    return existsSync(credentialsDir) && readdirSync(credentialsDir).some(name => name.endsWith('.json'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 認証情報があれば要約を有効にする。SDK と同じく次のいずれかを使う:
+ * API キー / アクセストークン / `ant auth login` のプロファイル / Workload Identity Federation
+ */
 export function isSummaryEnabled(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+  return Boolean(
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.ANTHROPIC_AUTH_TOKEN ||
+    process.env.ANTHROPIC_PROFILE ||
+    process.env.ANTHROPIC_FEDERATION_RULE_ID ||
+    hasLoginProfile()
+  );
 }
 
 function getClient(): Anthropic {
@@ -178,8 +201,8 @@ export async function summarize(item: NewsItem): Promise<SummaryResult> {
     })
     .catch((error: unknown): SummaryResult => {
       if (error instanceof Anthropic.AuthenticationError) {
-        console.error('[summary] API キーが無効です。.env の ANTHROPIC_API_KEY を確認してください。');
-        return { status: 'error', message: 'API キーが無効なため要約できません。' };
+        console.error('[summary] 認証に失敗しました。API キー、または `ant auth login` のログイン状態（期限切れの場合は再ログイン）を確認してください。');
+        return { status: 'error', message: '認証に失敗したため要約できません（API キーまたはログインの期限切れ）。' };
       }
       if (error instanceof Anthropic.RateLimitError) {
         return { status: 'error', message: '要約の利用上限に達しました。しばらくしてから再度お試しください。' };

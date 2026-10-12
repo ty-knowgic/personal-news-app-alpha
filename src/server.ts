@@ -99,7 +99,7 @@ app.get('/api/news/:id/summary', async (req, res) => {
     if (result.status === 'ok') {
       res.json({ summary: result.summary });
     } else if (result.status === 'disabled') {
-      res.status(503).json({ error: '要約機能は無効です（ANTHROPIC_API_KEY が未設定）。' });
+      res.status(503).json({ error: '要約機能は無効です（Claude の認証情報が未設定）。' });
     } else {
       res.status(502).json({ error: result.message });
     }

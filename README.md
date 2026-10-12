@@ -13,9 +13,12 @@
 ## 実行方法
 ```bash
 npm install
-cp .env.example .env   # AI 要約を使う場合は ANTHROPIC_API_KEY を記入
 npm run dev
 ```
+
+AI 要約を使う場合は、Claude の認証を次のどちらかで設定します（未設定でも要約以外は動作します）。
+- **おすすめ（キー不要）**: `brew install anthropics/tap/ant` で CLI を入れ、`ant auth login` を実行してブラウザでログインする。サーバーを再起動すると自動で使われます。ログインの有効期限が切れたら再度 `ant auth login` を実行します。
+- **API キー**: `cp .env.example .env` を実行し、`.env` に `ANTHROPIC_API_KEY` を記入する。キーを設定するとログインより優先されます。
 
 ブラウザで `http://localhost:3000` を開いて利用します。iPhone からの利用方法は [IPHONE_SETUP.md](IPHONE_SETUP.md) を参照してください。
 
@@ -23,7 +26,7 @@ npm run dev
 - 記事を開くと、発信元ページの本文（PDF 資料の場合は PDF そのもの）だけを Claude（`claude-opus-5-5`）に渡し、日本語の要約と要点を作成します。英語の記事も日本語で要約し、見出しも日本語に訳します。
 - 外部の知識による補足や推測はしないよう指示しています。それでも誤りを含む可能性があるため、画面上にその旨と元記事へのリンクを表示します。
 - 作成した要約は `data/summaries.json` に保存し、同じ記事を再度要約することはありません。一覧のカードにも保存済みの要約が表示されます。
-- `ANTHROPIC_API_KEY` が未設定の場合、要約機能はオフになり、本文の冒頭のみを表示します。
+- Claude の認証情報（API キー、`ant auth login` のログイン、Workload Identity Federation のいずれか）がない場合、要約機能はオフになり、本文の冒頭のみを表示します。
 - 費用の目安: 1 記事あたり数円程度（本文の長さによる）。本文が非常に長い場合は先頭 60,000 文字までを要約対象にします。
 - `.env` の `AUTO_SUMMARY_LIMIT` に件数を設定すると、一覧の更新時に最新記事のうち未要約のものを裏で自動要約します（既定は 0 = 無効。件数分の API 料金がかかります）。
 

@@ -461,7 +461,7 @@ function renderAiCard(detail) {
     return `
       <section class="ai-card is-info" aria-label="AI要約">
         <div class="ai-card-head">${ICONS.sparkle}AI要約はオフです</div>
-        <p class="ai-summary">サーバーの .env に ANTHROPIC_API_KEY を設定すると、記事ごとの要約と要点が表示されます。下の「本文の冒頭」から内容を確認できます。</p>
+        <p class="ai-summary">サーバーの Mac で <code>ant auth login</code> を実行するか、.env に ANTHROPIC_API_KEY を設定すると、記事ごとの要約と要点が表示されます。下の「本文の冒頭」から内容を確認できます。</p>
       </section>
     `;
   }

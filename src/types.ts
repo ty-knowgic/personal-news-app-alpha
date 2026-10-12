@@ -5,8 +5,11 @@ export const SUBGROUPS = ['日本', 'カナダ', '米国', '欧州', 'グロー�
 export type CategoryKey = (typeof CATEGORIES)[number];
 export type SubgroupKey = (typeof SUBGROUPS)[number];
 
-/** 公的機関 / 企業 / 研究機関 / 報道機関（一次情報の配信がない地域ニュースなどに限って使う） */
-export const SOURCE_TYPES = ['official', 'corporate', 'research', 'media'] as const;
+/**
+ * 公的機関 / 企業 / 研究機関 / 団体・NPO。一次情報（発信者自身の発表）だけを集めるため、報道機関は扱わない
+ * （PR TIMES などのプレスリリース配信は、企業の発表をそのまま載せるため「企業」とする）
+ */
+export const SOURCE_TYPES = ['official', 'corporate', 'research', 'npo'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export interface FeedSource {
@@ -58,6 +61,8 @@ export interface NewsFilters {
   subgroup?: string;
   sourceType?: string;
   keyword?: string;
+  /** 利用者がオフにした情報源の ID */
+  excludedSources?: Set<string>;
 }
 
 export interface ArticleContent {

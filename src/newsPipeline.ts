@@ -78,10 +78,12 @@ export const officialFeeds: FeedSource[] = [
   { sourceType: 'corporate', category: '生成AI', subgroup: '米国', sourceName: 'OpenAI', sourceUrl: 'https://openai.com/', feedUrl: 'https://openai.com/news/rss.xml', label: 'OpenAI News' },
   { sourceType: 'corporate', category: '生成AI', subgroup: '欧州', sourceName: 'Google DeepMind', sourceUrl: 'https://deepmind.google/', feedUrl: 'https://deepmind.google/blog/rss.xml', label: 'Google DeepMind Blog' },
   { sourceType: 'corporate', category: '生成AI', subgroup: '米国', sourceName: 'Google', sourceUrl: 'https://blog.google/', feedUrl: 'https://blog.google/technology/ai/rss/', label: 'Google AI Blog' },
-  // カナダ（地域ニュースは自治体の配信がないため、公共放送 CBC のキッチナー・ウォータールー版を使う）
-  { sourceType: 'media', category: '社会', subgroup: 'カナダ', sourceName: 'CBC KW', sourceUrl: 'https://www.cbc.ca/news/canada/kitchener-waterloo', feedUrl: 'https://www.cbc.ca/webfeed/rss/rss-canada-kitchenerwaterloo', label: 'CBC Kitchener-Waterloo' },
-  { sourceType: 'media', category: '経済', subgroup: 'カナダ', sourceName: 'CBC', sourceUrl: 'https://www.cbc.ca/news/business', feedUrl: 'https://www.cbc.ca/webfeed/rss/rss-business', label: 'CBC Business', maxItems: 10 },
-  { sourceType: 'media', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'CBC', sourceUrl: 'https://www.cbc.ca/news/science', feedUrl: 'https://www.cbc.ca/webfeed/rss/rss-technology', label: 'CBC Technology & Science', maxItems: 10 },
+  // カナダ
+  // ウォータールー地域の自治体（報道機関ではなく、市・リージョンの発表を直接取り込む）
+  { sourceType: 'official', category: '社会', subgroup: 'カナダ', sourceName: 'ウォータールー市', sourceUrl: 'https://www.waterloo.ca/news/', feedUrl: 'https://www.waterloo.ca/news/rss', label: 'City of Waterloo News', maxItems: 10, excludeRoutine: true },
+  { sourceType: 'official', category: '社会', subgroup: 'カナダ', sourceName: 'キッチナー市', sourceUrl: 'https://www.kitchener.ca/news/', feedUrl: 'https://www.kitchener.ca/news/rss', label: 'City of Kitchener News', maxItems: 10, excludeRoutine: true },
+  { sourceType: 'official', category: '社会', subgroup: 'カナダ', sourceName: 'ケンブリッジ市', sourceUrl: 'https://www.cambridge.ca/news/', feedUrl: 'https://www.cambridge.ca/news/rss', label: 'City of Cambridge News', maxItems: 10, excludeRoutine: true },
+  { sourceType: 'official', category: '社会', subgroup: 'カナダ', sourceName: 'ウォータールー・リージョン', sourceUrl: 'https://www.regionofwaterloo.ca/news-public-notices-and-council-info/', feedUrl: 'https://www.regionofwaterloo.ca/news-public-notices-and-council-info/rss', label: 'Region of Waterloo News', maxItems: 10, excludeRoutine: true },
   {
     sourceType: 'official', category: '政治', subgroup: 'カナダ', sourceName: 'カナダ政府', sourceUrl: 'https://www.canada.ca/en/news.html',
     feedUrl: 'https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&pick=100&format=atom&atomtitle=Canada%20News%20Centre',
@@ -102,7 +104,9 @@ export const officialFeeds: FeedSource[] = [
   // 欧州・米国のデジタル政策
   { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '欧州委員会（デジタル）', sourceUrl: 'https://digital-strategy.ec.europa.eu/', feedUrl: 'https://digital-strategy.ec.europa.eu/en/rss.xml', label: 'Shaping Europe’s digital future' },
   // Physical AI（ロボティクス）
-  { sourceType: 'media', category: 'テクノロジー', subgroup: 'グローバル', sourceName: 'IEEE Spectrum', sourceUrl: 'https://spectrum.ieee.org/topic/robotics/', feedUrl: 'https://spectrum.ieee.org/feeds/topic/robotics.rss', label: 'IEEE Spectrum Robotics', maxItems: 10 },
+  // 業界団体・NPO
+  { sourceType: 'npo', category: '生成AI', subgroup: '米国', sourceName: 'Partnership on AI', sourceUrl: 'https://partnershiponai.org/', feedUrl: 'https://partnershiponai.org/feed/', label: 'Partnership on AI（AI の業界横断団体）' },
+  { sourceType: 'npo', category: 'テクノロジー', subgroup: 'グローバル', sourceName: 'Linux Foundation', sourceUrl: 'https://www.linuxfoundation.org/press', feedUrl: 'https://www.linuxfoundation.org/press/rss.xml', label: 'Linux Foundation プレスリリース', maxItems: 10 },
   {
     sourceType: 'research', category: 'テクノロジー', subgroup: 'グローバル', sourceName: 'arXiv', sourceUrl: 'https://arxiv.org/list/cs.RO/recent',
     // ロボティクス論文のうち、基盤モデル・ヒューマノイド・VLA・世界モデル・身体性に関するもの（Physical AI）
@@ -110,8 +114,7 @@ export const officialFeeds: FeedSource[] = [
     label: 'arXiv cs.RO（Physical AI 関連の新着論文）', maxItems: 10
   },
   // 数学・科学の新発見
-  { sourceType: 'research', category: 'サイエンス', subgroup: '米国', sourceName: 'Simons Foundation', sourceUrl: 'https://www.simonsfoundation.org/', feedUrl: 'https://www.simonsfoundation.org/feed/', label: 'Simons Foundation（数学・物理）' },
-  { sourceType: 'media', category: 'サイエンス', subgroup: '米国', sourceName: 'Quanta Magazine', sourceUrl: 'https://www.quantamagazine.org/', feedUrl: 'https://www.quantamagazine.org/feed/', label: 'Quanta Magazine（数学・物理・計算機科学）' }
+  { sourceType: 'research', category: 'サイエンス', subgroup: '米国', sourceName: 'Simons Foundation', sourceUrl: 'https://www.simonsfoundation.org/', feedUrl: 'https://www.simonsfoundation.org/feed/', label: 'Simons Foundation（数学・物理）' }
 ];
 
 // 見出しと説明文に含まれる語だけでカテゴリを追加する（推測による分類はしない）
@@ -201,6 +204,12 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
 
 // 公的機関の発表のうち、ニュース性の低い定型的なお知らせ（入札結果、採用募集など）
 const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券/;
+// 自治体の発表のうち、日々の定型的なお知らせ（通行止め、水道管の破損、施設の休業、撮影の告知など）
+const LOCAL_ROUTINE_NOTICE = /^(road|trail|sidewalk|lane) closures?\b|road closures report|watermain break|filming notification|holiday hours|closed .{0,40}for maintenance|what['’]s open and closed|committee of adjustment meeting/i;
+
+function isRoutine(title: string): boolean {
+  return ROUTINE_NOTICE.test(title) || LOCAL_ROUTINE_NOTICE.test(title);
+}
 
 // 企業の発表を装った法律事務所の集団訴訟勧誘などは、企業活動の情報ではないため除外する
 // ウェビナー・セミナーの告知も、企業活動そのものの情報ではないため除外する
@@ -382,7 +391,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
       if (source.languages && language && !source.languages.some(code => language.startsWith(code))) continue;
 
       const description = trimSummary(textOf(item.contentSnippet ?? item.content ?? item.summary));
-      if (source.excludeRoutine && ROUTINE_NOTICE.test(title)) continue;
+      if (source.excludeRoutine && isRoutine(title)) continue;
       if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${title} ${description}`)) continue;
 
       const categories = classify(source, title, description, link);
@@ -424,7 +433,7 @@ async function loadArchive(): Promise<Map<string, NewsItem>> {
       // フィード設定や分類規則が変わっても反映されるよう、現在の設定で分類し直す
       const source = feedsByUrl.get(item.feedUrl);
       if (!source) continue;
-      if (source.excludeRoutine && ROUTINE_NOTICE.test(item.title)) continue;
+      if (source.excludeRoutine && isRoutine(item.title)) continue;
       if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${item.title} ${item.summary}`)) continue;
       const categories = classify(source, item.title, item.summary, item.sourceUrl);
       if (categories.length === 0) continue;
@@ -464,9 +473,39 @@ function sortByDate(items: NewsItem[]): NewsItem[] {
   return items.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }
 
+/** 情報源の ID（フィードの URL から作る。設定でどの情報源を使うかの保存に使う） */
+export function sourceId(feedUrl: string): string {
+  return createHash('sha1').update(feedUrl).digest('hex').slice(0, 10);
+}
+
+/** 設定画面用の情報源の一覧 */
+export function listSources() {
+  return officialFeeds.map(feed => ({
+    id: sourceId(feed.feedUrl),
+    sourceType: feed.sourceType,
+    sourceName: feed.sourceName,
+    label: feed.label,
+    subgroup: feed.subgroup,
+    categories: feed.category ? [feed.category] : (feed.matchOnly ?? []),
+    sourceUrl: feed.sourceUrl
+  }));
+}
+
+// どの情報源を取り込むか（利用者が全員オフにした情報源は取得も保存もしない）
+let shouldCollect: (id: string) => boolean = () => true;
+
+export function setCollectionFilter(filter: (id: string) => boolean): void {
+  shouldCollect = filter;
+}
+
+/** 情報源の設定が変わったときに、次の一覧の表示で取り込み直す */
+export function invalidateNewsCache(): void {
+  cache = null;
+}
+
 async function collectNews(): Promise<NewsItem[]> {
   const store = await loadArchive();
-  const feedResults = await Promise.all(officialFeeds.map(fetchFeed));
+  const feedResults = await Promise.all(officialFeeds.filter(feed => shouldCollect(sourceId(feed.feedUrl))).map(fetchFeed));
 
   // 同じ記事が複数のフィード（PR Newswire の決算・M&A など）に載る場合は、カテゴリを統合する
   const fetched = new Map<string, NewsItem>();
@@ -485,7 +524,7 @@ async function collectNews(): Promise<NewsItem[]> {
 
   const cutoff = Date.now() - ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
   const kept = limitPerFeedPerDay(sortByDate([...store.values()]))
-    .filter(item => new Date(item.publishedAt).getTime() >= cutoff)
+    .filter(item => new Date(item.publishedAt).getTime() >= cutoff && shouldCollect(sourceId(item.feedUrl)))
     .slice(0, ARCHIVE_LIMIT);
 
   store.clear();
@@ -593,6 +632,7 @@ export async function getNews(filters: NewsFilters = {}) {
     const byCategory = filters.category ? item.categories.includes(filters.category as CategoryKey) : true;
     const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
     const bySourceType = filters.sourceType ? item.sourceType === filters.sourceType : true;
+    if (filters.excludedSources?.size && filters.excludedSources.has(sourceId(item.feedUrl))) return false;
     const keyword = filters.keyword?.trim().toLowerCase();
     const byKeyword = keyword
       ? [item.title, item.summary, item.sourceName, ...item.keywords, ...item.hashtags].some(value =>

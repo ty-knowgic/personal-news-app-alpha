@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -30,7 +30,7 @@ const TopicSchema = z.object({
   alsoRequiresRegions: z.array(z.string()).default([]),
   /** 指定した地域の記事に限る */
   regions: z.array(z.string()).default([]),
-  /** 指定した種類の発信元（official / corporate / research / media）の記事に限る */
+  /** 指定した種類の発信元（official / corporate / research / npo）の記事に限る */
   sourceTypes: z.array(z.string()).default([]),
   /** これらの発信元の記事は、キーワードがなくても一致とする（例: 地域ニュースの配信元） */
   sources: z.array(z.string()).default([]),
@@ -42,7 +42,9 @@ const TopicSchema = z.object({
 
 export const ProfileSchema = z.object({
   name: z.string().max(60).default(''),
-  topics: z.array(TopicSchema).max(30)
+  topics: z.array(TopicSchema).max(30),
+  /** 使わない情報源の ID（すべてのタブ・ブリーフィングから除き、誰も使わない情報源は取り込まない） */
+  excludedSources: z.array(z.string().regex(/^[0-9a-f]{10}$/)).max(500).default([])
 });
 
 export type Profile = z.infer<typeof ProfileSchema>;
@@ -51,9 +53,10 @@ export type Topic = z.infer<typeof TopicSchema>;
 /** 初期プロフィール（ウォータールー在住、生成AI・Physical AI・日加・米欧・数学に関心のある事業開発コンサルタント） */
 const DEFAULT_PROFILE: Profile = {
   name: 'Waterloo, ON',
+  excludedSources: [],
   topics: [
     {
-      id: 'local', label: 'ウォータールー周辺', enabled: true, weight: 1, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['CBC KW'], boostOnly: false,
+      id: 'local', label: 'ウォータールー周辺', enabled: true, weight: 1, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['ウォータールー市', 'キッチナー市', 'ケンブリッジ市', 'ウォータールー・リージョン'], boostOnly: false,
       keywords: ['Waterloo', 'Kitchener', 'Guelph', 'Region of Waterloo', 'Waterloo Region', 'Wellington County', 'Communitech', 'Perimeter Institute', 'University of Waterloo', 'Wilfrid Laurier', 'Conestoga', 'southern Ontario', 'FedDev', 'ウォータールー', 'キッチナー']
     },
     {
@@ -87,7 +90,7 @@ const DEFAULT_PROFILE: Profile = {
     },
     {
       id: 'math', label: '数学・新発見',
-      description: '数学・新発見: 数学の研究、定理や予想の証明、理論物理や量子などの基礎科学の新しい発見、数理科学の研究者と研究資金。Mathematics and new scientific discoveries: theorems, conjectures, fundamental science, quantum research, mathematicians and research funding.', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation', 'Quanta Magazine'], boostOnly: false,
+      description: '数学・新発見: 数学の研究、定理や予想の証明、理論物理や量子などの基礎科学の新しい発見、数理科学の研究者と研究資金。Mathematics and new scientific discoveries: theorems, conjectures, fundamental science, quantum research, mathematicians and research funding.', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation'], boostOnly: false,
       keywords: ['数学', '数学者', '定理', 'アルゴリズム', '量子', 'mathematics', 'mathematical', 'mathematician', 'mathematicians', 'theorem', 'conjecture', 'algorithm', 'algorithms', 'topology', 'geometry', 'number theory', 'combinatorics', 'quantum']
     },
     {
@@ -131,6 +134,16 @@ export async function loadProfile(id = DEFAULT_PROFILE_ID): Promise<Profile> {
   }
   cache.set(id, profile);
   return profile;
+}
+
+/** 保存済みのプロフィールの ID の一覧（初期設定のままなら default だけ） */
+export async function listProfileIds(): Promise<string[]> {
+  try {
+    const ids = (await readdir(PROFILE_DIR)).filter(name => name.endsWith('.json')).map(name => name.slice(0, -5));
+    return ids.includes(DEFAULT_PROFILE_ID) ? ids : [DEFAULT_PROFILE_ID, ...ids];
+  } catch {
+    return [DEFAULT_PROFILE_ID];
+  }
 }
 
 export async function saveProfile(input: unknown, id = DEFAULT_PROFILE_ID): Promise<Profile> {

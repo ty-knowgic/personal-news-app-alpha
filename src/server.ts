@@ -3,8 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
 import { embedItemsInBackground, getEmbeddingStatus, loadItemVectors, prepareSemanticScorer } from './embeddings.js';
-import { cleanFeedText, getNews, getNewsById, listCategoryGroups, listFilterOptions, loadNews } from './newsPipeline.js';
-import { defaultProfile, loadProfile, matchTopics, rankForYou, saveProfile, semanticQueries } from './profile.js';
+import { cleanFeedText, getNews, getNewsById, invalidateNewsCache, listCategoryGroups, listFilterOptions, listSources, loadNews, setCollectionFilter, sourceId } from './newsPipeline.js';
+import { defaultProfile, listProfileIds, loadProfile, matchTopics, rankForYou, saveProfile, semanticQueries } from './profile.js';
+import type { Profile } from './profile.js';
 import { buildStoryIndex, findRelated, groupStories } from './stories.js';
 import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
 import type { NewsItem } from './types.js';
@@ -63,6 +64,51 @@ async function groupForDisplay<T extends NewsItem & { score?: number }>(items: T
     .map(({ item }) => item);
 }
 
+/**
+ * 情報源の取り込み: 利用者の誰か1人でも使っている情報源は取り込み、全員がオフにした情報源は取得も保存もしない。
+ * 個々の利用者には、その人がオフにした情報源を表示しない（excludedSources）
+ */
+let collectedKey = '';
+async function updateCollectionFilter(): Promise<void> {
+  const profiles = await Promise.all((await listProfileIds()).map(id => loadProfile(id)));
+  const excludedByAll = new Set(listSources().map(source => source.id)
+    .filter(id => profiles.every(profile => profile.excludedSources.includes(id))));
+  setCollectionFilter(id => !excludedByAll.has(id));
+  const key = [...excludedByAll].sort().join(',');
+  // 取り込む情報源が変わった場合は、次の表示で取り込み直す（オンに戻した情報源をすぐ表示するため）
+  if (collectedKey && key !== collectedKey) invalidateNewsCache();
+  collectedKey = key;
+}
+
+function excludedSet(profile: Profile): Set<string> {
+  return new Set(profile.excludedSources);
+}
+
+/** 利用者がオフにした情報源を除いた、蓄積中の全記事 */
+async function visibleNews(profile: Profile): Promise<NewsItem[]> {
+  return getNews({ excludedSources: excludedSet(profile) });
+}
+
+// 情報源の一覧（設定画面用）。直近30日の取り込み件数と、この利用者が使っているかを添える
+app.get('/api/sources', async (_req, res) => {
+  try {
+    const profile = await loadProfile();
+    const counts = new Map<string, number>();
+    for (const item of await loadNews()) {
+      const id = sourceId(item.feedUrl);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    res.json(listSources().map(source => ({
+      ...source,
+      enabled: !profile.excludedSources.includes(source.id),
+      count: counts.get(source.id) ?? 0
+    })));
+  } catch (error) {
+    console.error('[api/sources]', error);
+    res.status(500).json({ error: '情報源の一覧を取得できませんでした。' });
+  }
+});
+
 app.get('/api/filters', (_req, res) => {
   res.json(listFilterOptions());
 });
@@ -74,14 +120,18 @@ app.get('/api/profile', async (_req, res) => {
 
 app.put('/api/profile', async (req, res) => {
   try {
-    res.json(await saveProfile(req.body));
+    const profile = await saveProfile(req.body);
+    await updateCollectionFilter();
+    res.json(profile);
   } catch (error) {
     res.status(400).json({ error: `プロフィールの形式が正しくありません: ${(error as Error).message.slice(0, 300)}` });
   }
 });
 
 app.post('/api/profile/reset', async (_req, res) => {
-  res.json(await saveProfile(defaultProfile()));
+  const profile = await saveProfile(defaultProfile());
+  await updateCollectionFilter();
+  res.json(profile);
 });
 
 app.get('/api/categories', (_req, res) => {
@@ -92,16 +142,17 @@ app.get('/api/news', async (req, res) => {
   const { forYou, category, subgroup, sourceType, keyword, offset, limit } = req.query;
 
   try {
+    const profile = await loadProfile();
     const filtered = await getNews({
       category: typeof category === 'string' ? category : undefined,
       subgroup: typeof subgroup === 'string' ? subgroup : undefined,
       sourceType: typeof sourceType === 'string' ? sourceType : undefined,
-      keyword: typeof keyword === 'string' ? keyword : undefined
+      keyword: typeof keyword === 'string' ? keyword : undefined,
+      excludedSources: excludedSet(profile)
     });
 
     // マイニュースは関心プロフィールに一致する記事を関連度順に、それ以外は新しい順に返す。
     // どちらの場合も、どの関心トピックに一致したかを添える
-    const profile = await loadProfile();
     const withSummaries = await withStoredSummaries(filtered);
     // 埋め込みモデルが使えない場合は null になり、キーワードだけで判定する
     const semantic = await prepareSemanticScorer(semanticQueries(profile));
@@ -143,7 +194,7 @@ app.get('/api/briefing', async (_req, res) => {
   try {
     const profile = await loadProfile();
     const semantic = await prepareSemanticScorer(semanticQueries(profile));
-    const items = await withStoredSummaries(await loadNews());
+    const items = await withStoredSummaries(await visibleNews(profile));
     const stories = await groupForDisplay(rankForYou(items, profile, semantic), true);
     const boostOnly = new Set(profile.topics.filter(topic => topic.boostOnly).map(topic => topic.id));
     const MAX_PER_TOPIC = 2;
@@ -220,7 +271,8 @@ app.get('/api/news/:id', async (req, res) => {
 
     const summaries = await getStoredSummaries();
     const allItems = await loadNews();
-    const related = (await loadItemVectors()) ? findRelated(item, allItems, buildStoryIndex(allItems)) : [];
+    const visible = await visibleNews(await loadProfile());
+    const related = (await loadItemVectors()) ? findRelated(item, visible, buildStoryIndex(allItems)) : [];
     res.json({
       item,
       related,
@@ -259,6 +311,9 @@ app.get('/api/news/:id/summary', async (req, res) => {
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
+
+// 最初の取り込みより前に、利用者がオフにした情報源を反映しておく
+await updateCollectionFilter().catch(error => console.error('[sources]', error));
 
 app.listen(port, () => {
   console.log(`Personal news app is running at http://localhost:${port}`);

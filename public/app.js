@@ -19,8 +19,8 @@ const settingsButton = document.getElementById('settingsButton');
 const ALL_TAB = '';
 // 関心プロフィールに一致する記事を関連度順に並べるタブ
 const FOR_YOU_TAB = '__for_you';
-const SOURCE_TYPE_LABELS = { official: '公的機関', corporate: '企業', research: '研究機関', media: '報道機関' };
-const SOURCE_BADGES = { corporate: '企業', research: '研究', media: '報道' };
+const SOURCE_TYPE_LABELS = { official: '政府・自治体', corporate: '企業', research: '研究機関', npo: '団体・NPO' };
+const SOURCE_BADGES = { corporate: '企業', research: '研究', npo: '団体' };
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
 
@@ -366,7 +366,7 @@ function renderNews() {
     newsList.innerHTML = state.keyword
       ? `<div class="empty-state"><strong>「${escapeHtml(state.keyword)}」に一致する記事はありません</strong>別のキーワードをお試しください。</div>`
       : isForYou()
-        ? `<div class="empty-state"><strong>関心に一致する記事がまだありません</strong><a href="#/settings">マイニュースの設定</a>で関心トピックやキーワードを追加できます。</div>`
+        ? `<div class="empty-state"><strong>関心に一致する記事がまだありません</strong><a href="#/settings">設定</a>で関心トピックやキーワードを追加できます。</div>`
         : `<div class="empty-state"><strong>まだ記事がありません</strong>${escapeHtml(scope)}の新しい発表が出ると、ここに表示されます。</div>`;
     moreButton.hidden = true;
     return;
@@ -818,6 +818,11 @@ const WEIGHT_OPTIONS = [
 ];
 
 let profileDraft = null;
+let sourcesDraft = [];
+// 設定画面で表示中の区分（情報源 / 関心トピック）
+let settingsPane = 'sources';
+const SOURCE_TYPE_ORDER = ['official', 'corporate', 'research', 'npo'];
+const REGION_ORDER = ['カナダ', '日本', '米国', '欧州', 'グローバル'];
 
 function nearestWeight(weight) {
   return WEIGHT_OPTIONS.reduce((best, option) => (Math.abs(option.value - weight) < Math.abs(best.value - weight) ? option : best)).value;
@@ -880,13 +885,80 @@ function semanticStatusNote() {
     : `<p class="settings-note is-warning">埋め込みモデル（${escapeHtml(semantic.model)}）に接続できないため、いまはキーワードだけで判定しています。</p>`;
 }
 
-function renderSettings() {
-  settingsView.innerHTML = `
-    <h1 class="settings-title">マイニュースの設定</h1>
+// ---------- 情報源の選択 ----------
+
+function isSourceEnabled(source) {
+  return !profileDraft.excludedSources.includes(source.id);
+}
+
+function renderSourceRow(source) {
+  const enabled = isSourceEnabled(source);
+  const details = [source.label !== source.sourceName ? source.label : '', source.subgroup, source.categories.join('・'), `30日で${source.count}件`].filter(Boolean);
+  const url = safeUrl(source.sourceUrl);
+  return `
+    <li class="source-row${enabled ? '' : ' is-off'}">
+      <label class="switch">
+        <input type="checkbox" data-source="${escapeHtml(source.id)}" ${enabled ? 'checked' : ''}>
+        <span class="switch-track" aria-hidden="true"></span>
+        <span class="visually-hidden">${escapeHtml(source.label)}を使う</span>
+      </label>
+      <div class="source-meta">
+        <span class="source-name">${escapeHtml(source.sourceName)}</span>
+        <span class="source-desc">${details.map(escapeHtml).join(' · ')}</span>
+      </div>
+      ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(source.sourceName)}のサイトを開く">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+      </a>` : ''}
+    </li>
+  `;
+}
+
+function renderSourceGroup(type) {
+  const sources = sourcesDraft
+    .filter(source => source.sourceType === type)
+    .sort((a, b) => REGION_ORDER.indexOf(a.subgroup) - REGION_ORDER.indexOf(b.subgroup));
+  if (!sources.length) return '';
+  const enabledCount = sources.filter(isSourceEnabled).length;
+  return `
+    <section class="source-group" data-type="${type}">
+      <div class="source-group-head">
+        <h2>${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)} <span class="source-count">${enabledCount}/${sources.length}</span></h2>
+        <button class="text-button" type="button" data-action="toggle-group" data-type="${type}">${enabledCount ? 'すべてオフ' : 'すべてオン'}</button>
+      </div>
+      <ul class="source-list">${sources.map(renderSourceRow).join('')}</ul>
+    </section>
+  `;
+}
+
+function renderSourcesPane() {
+  const enabled = sourcesDraft.filter(isSourceEnabled).length;
+  return `
+    <p class="settings-lead">政府・自治体、企業、研究機関、団体・NPO が自ら公開した発表だけを集めています。報道機関の記事や論評は含みません。オフにした情報源は、すべてのタブとブリーフィングに表示されず、取り込みもしません。</p>
+    <p class="source-summary">${sourcesDraft.length}件中 <strong>${enabled}件</strong>を使用中</p>
+    ${SOURCE_TYPE_ORDER.map(renderSourceGroup).join('')}
+  `;
+}
+
+function renderTopicsPane() {
+  return `
     <p class="settings-lead">関心のあるトピックを登録すると、キーワードを含む記事と、説明に内容が近い記事を、関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。</p>
     ${semanticStatusNote()}
     <div id="topicList">${profileDraft.topics.map(renderTopicEditor).join('')}</div>
     <button class="add-topic" type="button" data-action="add-topic">＋ トピックを追加</button>
+  `;
+}
+
+function renderSettings() {
+  settingsView.innerHTML = `
+    <h1 class="settings-title">設定</h1>
+    <div class="segmented settings-tabs" role="radiogroup" aria-label="設定の区分">
+      ${[['sources', '情報源'], ['topics', '関心トピック']].map(([value, label]) => `
+        <label class="segment">
+          <input type="radio" name="settings-pane" value="${value}" ${settingsPane === value ? 'checked' : ''}>
+          <span>${label}</span>
+        </label>`).join('')}
+    </div>
+    <div class="settings-pane">${settingsPane === 'sources' ? renderSourcesPane() : renderTopicsPane()}</div>
     <div class="settings-actions">
       <button class="secondary-button" type="button" data-action="reset-profile">初期設定に戻す</button>
       <button class="primary-action" type="button" data-action="save-profile">保存</button>
@@ -896,6 +968,7 @@ function renderSettings() {
 
 // 入力欄の内容を下書きに反映する（再描画の前に呼ぶ）
 function collectSettings() {
+  // 情報源のオン・オフは切り替えた時点で下書きに反映済み
   settingsView.querySelectorAll('.topic-editor').forEach((editor) => {
     const topic = profileDraft.topics[Number(editor.dataset.index)];
     topic.enabled = editor.querySelector('[data-field="enabled"]').checked;
@@ -913,16 +986,18 @@ async function showSettings() {
   settingsView.hidden = false;
   backButton.hidden = false;
   shareButton.hidden = true;
-  document.title = 'マイニュースの設定 | Personal News';
+  document.title = '設定 | Personal News';
   window.scrollTo(0, 0);
   settingsView.innerHTML = '<div class="empty-state">読み込み中…</div>';
   try {
-    const [profile, config] = await Promise.all([
+    const [profile, sources, config] = await Promise.all([
       fetch('/api/profile').then(r => r.json()),
+      fetch('/api/sources').then(r => r.json()),
       // 埋め込みモデルの接続状況は変わりうるため、設定画面を開くたびに確認する
       fetch('/api/config').then(r => r.json()).catch(() => state.config)
     ]);
-    profileDraft = profile;
+    profileDraft = { ...profile, excludedSources: profile.excludedSources ?? [] };
+    sourcesDraft = sources;
     state.config = config;
     renderSettings();
   } catch {
@@ -930,7 +1005,37 @@ async function showSettings() {
   }
 }
 
+function setSourceEnabled(id, enabled) {
+  const excluded = new Set(profileDraft.excludedSources);
+  if (enabled) excluded.delete(id); else excluded.add(id);
+  profileDraft.excludedSources = [...excluded];
+}
+
+// 情報源の件数の表示を、切り替えに合わせて更新する（入力中の位置を保つため全体は描き直さない）
+function refreshSourceCounts() {
+  settingsView.querySelectorAll('.source-group').forEach((group) => {
+    const html = renderSourceGroup(group.dataset.type);
+    const next = document.createElement('div');
+    next.innerHTML = html;
+    group.querySelector('.source-group-head').replaceWith(next.querySelector('.source-group-head'));
+  });
+  const summary = settingsView.querySelector('.source-summary');
+  if (summary) summary.innerHTML = `${sourcesDraft.length}件中 <strong>${sourcesDraft.filter(isSourceEnabled).length}件</strong>を使用中`;
+}
+
 settingsView.addEventListener('change', (event) => {
+  if (event.target.name === 'settings-pane') {
+    if (settingsPane === 'topics') collectSettings();
+    settingsPane = event.target.value;
+    renderSettings();
+    return;
+  }
+  if (event.target.matches('[data-source]')) {
+    setSourceEnabled(event.target.dataset.source, event.target.checked);
+    event.target.closest('.source-row').classList.toggle('is-off', !event.target.checked);
+    refreshSourceCounts();
+    return;
+  }
   if (event.target.matches('[data-field="enabled"]')) {
     event.target.closest('.topic-editor').classList.toggle('is-disabled', !event.target.checked);
   }
@@ -940,7 +1045,12 @@ settingsView.addEventListener('click', async (event) => {
   const action = event.target.closest('[data-action]')?.dataset.action;
   if (!action || !profileDraft) return;
 
-  if (action === 'add-topic') {
+  if (action === 'toggle-group') {
+    const sources = sourcesDraft.filter(source => source.sourceType === event.target.closest('[data-type]').dataset.type);
+    const turnOn = !sources.some(isSourceEnabled);
+    sources.forEach(source => setSourceEnabled(source.id, turnOn));
+    renderSettings();
+  } else if (action === 'add-topic') {
     collectSettings();
     profileDraft.topics.push({
       id: `custom-${Date.now().toString(36)}`, label: '新しいトピック', enabled: true, weight: 1, keywords: [], description: '',
@@ -954,12 +1064,16 @@ settingsView.addEventListener('click', async (event) => {
     profileDraft.topics.splice(index, 1);
     renderSettings();
   } else if (action === 'reset-profile') {
-    if (!confirm('関心トピックを初期設定に戻しますか？')) return;
+    if (!confirm('関心トピックと情報源を初期設定に戻しますか？')) return;
     profileDraft = await (await fetch('/api/profile/reset', { method: 'POST' })).json();
     renderSettings();
     showToast('初期設定に戻しました');
   } else if (action === 'save-profile') {
     collectSettings();
+    if (!sourcesDraft.some(isSourceEnabled)) {
+      showToast('情報源を1つ以上オンにしてください');
+      return;
+    }
     profileDraft.topics = profileDraft.topics.filter(topic => topic.keywords.length || topic.description || topic.sources?.length);
     const response = await fetch('/api/profile', {
       method: 'PUT',
@@ -971,9 +1085,12 @@ settingsView.addEventListener('click', async (event) => {
       return;
     }
     showToast('保存しました');
-    state.tab = FOR_YOU_TAB;
-    saveListState();
-    tabsEl.querySelectorAll('.tab').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === FOR_YOU_TAB)));
+    // 関心トピックを編集した場合は、結果を確かめられるようマイニュースを開く
+    if (settingsPane === 'topics') {
+      state.tab = FOR_YOU_TAB;
+      saveListState();
+      tabsEl.querySelectorAll('.tab').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === FOR_YOU_TAB)));
+    }
     state.items = [];
     listScrollY = 0;
     location.hash = '#/';

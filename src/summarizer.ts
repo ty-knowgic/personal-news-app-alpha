@@ -6,7 +6,7 @@ import { fetchArticleSource } from './articleContent.js';
 import { claudeSummarizer, hasClaudeCredentials } from './summarizers/claude.js';
 import { extractiveSummarizer } from './summarizers/extractive.js';
 import { isLocalLlmConfigured, localLlmSummarizer } from './summarizers/localLlm.js';
-import type { Summarizer, SummaryInput } from './summarizers/types.js';
+import type { Summarizer, SummaryDraft, SummaryInput } from './summarizers/types.js';
 import type { ArticleSummary, NewsItem } from './types.js';
 
 /**
@@ -23,6 +23,8 @@ const CHEAP_AUTO_LIMIT = 80;
 const LLM_AUTO_LIMIT = Math.max(0, Number(process.env.AUTO_SUMMARY_LIMIT) || 0);
 const AUTO_SUMMARY_CONCURRENCY = 3;
 const MAX_PDF_PAGES = 30;
+// これより短い本文しか取れない場合は、LLM に渡さない（本文がないと、モデルがもっともらしい内容を作ってしまうため）
+const MIN_SOURCE_CHARS_FOR_LLM = 150;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORE_PATH = path.join(__dirname, '../data/summaries.json');
@@ -101,8 +103,15 @@ async function pdfToText(base64: string): Promise<string> {
   return texts.join('\n\n');
 }
 
+class TemporaryFetchError extends Error {}
+
 async function buildInput(item: NewsItem): Promise<SummaryInput> {
   const source = await fetchArticleSource(item.sourceUrl);
+
+  // 通信エラー（HTTP の応答がない）は一時的な失敗として扱い、空の本文で要約しない
+  if (source.content.status === 'unavailable' && source.content.reason && !source.content.reason.startsWith('HTTP')) {
+    throw new TemporaryFetchError(`発信元ページを取得できませんでした（${source.content.reason}）`);
+  }
 
   if (source.pdfBase64) {
     let text = '';
@@ -121,12 +130,50 @@ async function buildInput(item: NewsItem): Promise<SummaryInput> {
   return { item, text: fallback, basis: 'feed' };
 }
 
+// 全角数字をそろえ、桁区切りや小数点を除いた「数字の並び」にする（「$1.1 billion」と「11億ドル」も同じ 11 として照合できる）
+function digitRuns(text: string): string[] {
+  const halfWidth = text.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+  return (halfWidth.match(/\d[\d,.]*/g) ?? []).map(run => run.replace(/[,.]/g, '')).filter(run => run.length > 0);
+}
+
+/** LLM の出力に含まれる数字が、すべて本文にも現れるか（本文にない数値は作られた可能性が高い） */
+function numbersAreGrounded(output: string, sourceDigits: string): boolean {
+  return digitRuns(output).every(run => sourceDigits.includes(run));
+}
+
+/** LLM の要約を本文と照合する。根拠のない数値を含む要点は除き、要約本文に含む場合は採用しない */
+function verifyAgainstSource(draft: SummaryDraft, input: SummaryInput): SummaryDraft | null {
+  const sourceDigits = digitRuns(`${input.item.title} ${input.text}`).join(' ');
+  if (!numbersAreGrounded(`${draft.headlineJa} ${draft.summary}`, sourceDigits)) return null;
+  const keyPoints = draft.keyPoints.filter(point => numbersAreGrounded(point, sourceDigits));
+  if (keyPoints.length < draft.keyPoints.length) {
+    console.warn(`[summary] 本文にない数値を含む要点を ${draft.keyPoints.length - keyPoints.length} 件除外しました: ${input.item.title}`);
+  }
+  return { ...draft, keyPoints };
+}
+
 async function generate(item: NewsItem): Promise<SummaryResult> {
-  const input = await buildInput(item);
-  let engine = provider;
-  let draft;
+  let input: SummaryInput;
   try {
-    draft = await provider.summarize(input);
+    input = await buildInput(item);
+  } catch (error) {
+    if (error instanceof TemporaryFetchError) return { status: 'error', message: `${error.message}。しばらくしてから再度お試しください。` };
+    throw error;
+  }
+
+  // 本文がほとんどない場合は、LLM に推測させず「内容を読み取れない」として扱う
+  const sourceLength = input.text.replace(/\s/g, '').length;
+  if (provider.method === 'llm' && sourceLength < MIN_SOURCE_CHARS_FOR_LLM && !input.pdfBase64) {
+    return { status: 'ok', summary: buildSummary(input, extractiveSummarizer, { headlineJa: item.title, summary: '', keyPoints: [], insufficient: true }) };
+  }
+
+  let engine = provider;
+  let draft: SummaryDraft;
+  try {
+    const generated = await provider.summarize(input);
+    const verified = provider.method === 'llm' ? verifyAgainstSource(generated, input) : generated;
+    if (!verified) throw new Error('要約に本文にない数値が含まれていたため採用しませんでした');
+    draft = verified;
   } catch (error) {
     // LLM が使えない・失敗した場合でも、抽出型で要約を返す（保存はせず、次回あらためて LLM で作る）
     console.warn(`[summary] ${provider.id} での要約に失敗したため抽出型で代替します: ${(error as Error).message}`);
@@ -135,23 +182,21 @@ async function generate(item: NewsItem): Promise<SummaryResult> {
     draft = await extractiveSummarizer.summarize(input);
   }
 
-  if (!draft.summary) {
-    return { status: 'error', message: '本文から要約できる文が見つかりませんでした。' };
-  }
+  return { status: 'ok', summary: buildSummary(input, engine, draft) };
+}
 
+function buildSummary(input: SummaryInput, engine: Summarizer, draft: SummaryDraft): ArticleSummary {
   return {
-    status: 'ok',
-    summary: {
-      method: engine.method,
-      provider: engine.id,
-      headlineJa: draft.headlineJa || item.title,
-      summary: draft.summary,
-      keyPoints: draft.keyPoints,
-      insufficient: draft.insufficient,
-      basis: input.basis,
-      model: draft.model ?? engine.id,
-      createdAt: new Date().toISOString()
-    }
+    method: engine.method,
+    // 本文不足で要約しなかった場合も、選択中のエンジンの結果として保存し、何度も試さないようにする
+    provider: draft.insufficient && !draft.summary ? provider.id : engine.id,
+    headlineJa: draft.headlineJa || input.item.title,
+    summary: draft.summary,
+    keyPoints: draft.keyPoints,
+    insufficient: draft.insufficient,
+    basis: input.basis,
+    model: draft.model ?? engine.id,
+    createdAt: new Date().toISOString()
   };
 }
 

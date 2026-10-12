@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
 import { getNews, getNewsById, listCategoryGroups, loadNews } from './newsPipeline.js';
-import { getStoredSummaries, isSummaryEnabled, summarize, summarizeLatestInBackground } from './summarizer.js';
+import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
 import type { NewsItem } from './types.js';
 
 const app = express();
@@ -18,15 +18,15 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/config', (_req, res) => {
-  res.json({ summaryEnabled: isSummaryEnabled() });
+  res.json({ summaryEnabled: true, ...getSummaryProviderInfo() });
 });
 
-// 保存済みの AI 要約があれば一覧用の項目に添える（ここでは新たな要約は作らない）
+// 保存済みの要約があれば一覧用の項目に添える（ここでは新たな要約は作らない）
 async function withStoredSummaries(items: NewsItem[]) {
   const summaries = await getStoredSummaries();
   return items.map((item) => {
     const summary = summaries.get(item.id);
-    return summary ? { ...item, ai: { headlineJa: summary.headlineJa, summary: summary.summary } } : item;
+    return summary ? { ...item, ai: { headlineJa: summary.headlineJa, summary: summary.summary, method: summary.method } } : item;
   });
 }
 
@@ -51,7 +51,7 @@ app.get('/api/news', async (req, res) => {
     res.set('X-Total-Count', String(result.length));
     res.json(await withStoredSummaries(result.slice(start, start + size)));
 
-    // AUTO_SUMMARY_LIMIT が設定されている場合のみ、最新記事の要約を裏で進める
+    // 最新記事の要約を裏で進める（抽出型は自動、LLM は AUTO_SUMMARY_LIMIT の件数まで）
     void loadNews().then(summarizeLatestInBackground).catch(error => console.error('[summary]', error));
   } catch (error) {
     console.error('[api/news]', error);
@@ -76,7 +76,7 @@ app.get('/api/news/:id', async (req, res) => {
     res.json({
       item,
       summary: summaries.get(item.id) ?? null,
-      summaryEnabled: isSummaryEnabled(),
+      summaryEnabled: true,
       // 見出しと同じ段落は詳細画面で重複するため除く（キャッシュ側は書き換えない）
       content: { ...content, paragraphs: content.paragraphs.filter(paragraph => paragraph !== item.title) }
     });
@@ -86,7 +86,7 @@ app.get('/api/news/:id', async (req, res) => {
   }
 });
 
-// 記事の AI 要約: 保存済みならそれを返し、なければ作成する（数秒〜十数秒かかる）
+// 記事の要約: 保存済みならそれを返し、なければ作成する（抽出型は一瞬、LLM の場合は数秒〜数十秒）
 app.get('/api/news/:id/summary', async (req, res) => {
   try {
     const item = await getNewsById(req.params.id);
@@ -98,8 +98,6 @@ app.get('/api/news/:id/summary', async (req, res) => {
     const result = await summarize(item);
     if (result.status === 'ok') {
       res.json({ summary: result.summary });
-    } else if (result.status === 'disabled') {
-      res.status(503).json({ error: '要約機能は無効です（Claude の認証情報が未設定）。' });
     } else {
       res.status(502).json({ error: result.message });
     }

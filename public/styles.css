@@ -846,6 +846,22 @@ main {
   color: var(--muted);
 }
 
+/* 抽出型の要約は、AI 要約と見分けられるよう落ち着いた配色にする */
+.ai-card.is-extract {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.ai-card.is-extract .ai-card-head { color: var(--text-2); }
+.ai-card.is-extract .ai-points { border-top-color: var(--line); }
+.ai-card.is-extract .ai-points li::before { background: var(--muted); }
+
+.ai-mark.is-extract {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
 .ai-card.is-loading .ai-summary,
 .ai-card.is-info .ai-summary {
   font-size: 0.92rem;

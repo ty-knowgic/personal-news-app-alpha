@@ -42,6 +42,7 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 const ICONS = {
   sparkle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
+  quote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4H8a1 1 0 0 0-1 1v4"/><path d="M15 7h4v4h-3a1 1 0 0 0-1 1v4"/></svg>',
   external: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
 };
 
@@ -190,7 +191,11 @@ tabsEl.addEventListener('click', (event) => {
 
 function cardSummary(item) {
   if (item.ai?.summary) {
-    return `<p class="card-summary"><span class="ai-mark">${ICONS.sparkle.replace('<svg', '<svg width="11" height="11"')}AI要約</span>${escapeHtml(item.ai.summary)}</p>`;
+    // 抽出型（本文の文をそのまま抜粋）と、生成モデルによる要約を区別して表示する
+    const mark = item.ai.method === 'llm'
+      ? `<span class="ai-mark">${ICONS.sparkle.replace('<svg', '<svg width="11" height="11"')}AI要約</span>`
+      : '<span class="ai-mark is-extract">要約</span>';
+    return `<p class="card-summary">${mark}${escapeHtml(item.ai.summary)}</p>`;
   }
   return item.summary ? `<p class="card-summary">${escapeHtml(item.summary)}</p>` : '';
 }
@@ -418,25 +423,33 @@ function renderAiCard(detail) {
   const { summary, summaryState, summaryError } = detail;
 
   if (summary) {
-    const basisNote = {
-      article: '発信元ページの本文のみをもとに',
-      pdf: '発信元が公開した PDF 資料のみをもとに',
-      feed: '発信元の配信文のみをもとに（本文を取得できなかったため簡易的な要約です）'
-    }[summary.basis] ?? '';
+    const source = {
+      article: '発信元ページの本文',
+      pdf: '発信元が公開した PDF 資料',
+      feed: '発信元の配信文（本文を取得できなかったため）'
+    }[summary.basis] ?? '発信元の本文';
+    const isLlm = summary.method === 'llm';
+    const title = isLlm ? 'AI要約' : '要約';
+    const note = isLlm
+      ? `${source}のみをもとに、AI（${summary.model}）が作成した要約です。誤りを含む可能性があるため、重要な内容は元記事でご確認ください。`
+      : `${source}から重要な文をそのまま抜き出しています（AI による書き換えはしていません）。`;
+    const body = summary.summary
+      ? `<p class="ai-summary">${escapeHtml(summary.summary)}</p>
+        ${summary.keyPoints?.length ? `<ul class="ai-points">${summary.keyPoints.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}`
+      : '<p class="ai-summary">発信元ページから、この記事の内容を読み取れませんでした。元記事でご確認ください。</p>';
     return `
-      <section class="ai-card" aria-label="AI要約">
-        <div class="ai-card-head">${ICONS.sparkle}AI要約</div>
-        <p class="ai-summary">${escapeHtml(summary.summary)}</p>
-        ${summary.keyPoints?.length ? `<ul class="ai-points">${summary.keyPoints.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}
-        <p class="ai-note">${escapeHtml(basisNote)} Claude が作成した要約です。誤りを含む可能性があるため、重要な内容は元記事でご確認ください。</p>
+      <section class="ai-card${isLlm ? '' : ' is-extract'}" aria-label="${title}">
+        <div class="ai-card-head">${isLlm ? ICONS.sparkle : ICONS.quote}${title}</div>
+        ${body}
+        <p class="ai-note">${escapeHtml(note)}</p>
       </section>
     `;
   }
 
   if (summaryState === 'loading') {
     return `
-      <section class="ai-card is-loading" aria-label="AI要約" aria-busy="true">
-        <div class="ai-card-head">${ICONS.sparkle}AI要約</div>
+      <section class="ai-card is-loading" aria-label="要約" aria-busy="true">
+        <div class="ai-card-head">${ICONS.sparkle}要約</div>
         <p class="ai-summary">記事を読み込んで要約しています…</p>
         <div class="ai-loading" aria-hidden="true">
           <div class="skeleton" style="width: 100%"></div>
@@ -449,19 +462,10 @@ function renderAiCard(detail) {
 
   if (summaryState === 'error') {
     return `
-      <section class="ai-card is-info" aria-label="AI要約">
-        <div class="ai-card-head">${ICONS.sparkle}AI要約</div>
+      <section class="ai-card is-info" aria-label="要約">
+        <div class="ai-card-head">${ICONS.sparkle}要約</div>
         <p class="ai-summary">${escapeHtml(summaryError || '要約を作成できませんでした。')}</p>
         <button class="retry-button" type="button" data-action="retry-summary">もう一度試す</button>
-      </section>
-    `;
-  }
-
-  if (summaryState === 'disabled') {
-    return `
-      <section class="ai-card is-info" aria-label="AI要約">
-        <div class="ai-card-head">${ICONS.sparkle}AI要約はオフです</div>
-        <p class="ai-summary">サーバーの Mac で <code>ant auth login</code> を実行するか、.env に ANTHROPIC_API_KEY を設定すると、記事ごとの要約と要点が表示されます。下の「本文の冒頭」から内容を確認できます。</p>
       </section>
     `;
   }
@@ -485,8 +489,8 @@ function renderExcerpt(detail) {
     body = `${fallback ? `<p>${escapeHtml(fallback)}</p>` : ''}<p class="excerpt-more">${notice}</p>`;
   }
 
-  // AI 要約がある場合、抜粋は補助的な情報なので閉じておく
-  const open = !summary && detail.summaryState !== 'loading';
+  // 要約がある場合（または作成中）は、抜粋は補助的な情報なので閉じておく
+  const open = !summary && !['loading', 'idle'].includes(detail.summaryState);
   return `
     <details class="excerpt" ${open ? 'open' : ''}>
       <summary>本文の冒頭（発信元より）</summary>
@@ -506,9 +510,6 @@ function renderDetail() {
   const sourceUrl = safeUrl(item.sourceUrl);
   const headline = summary?.headlineJa || item.ai?.headlineJa || item.title;
   const showOriginal = headline !== item.title;
-
-  // details の開閉状態は再描画しても保つ
-  const excerptOpen = detailView.querySelector('.excerpt')?.open;
 
   detailView.dataset.cat = category;
   detailView.innerHTML = `
@@ -539,11 +540,6 @@ function renderDetail() {
         </a>
       </div>` : ''}
   `;
-
-  if (excerptOpen !== undefined) {
-    const excerpt = detailView.querySelector('.excerpt');
-    if (excerpt) excerpt.open = excerptOpen;
-  }
 }
 
 function isCurrentDetail(id) {
@@ -562,9 +558,9 @@ async function loadSummary(id) {
       currentDetail.summaryState = 'done';
       // 一覧に戻ったときにも要約が表示されるよう反映する
       const known = itemsById.get(id);
-      if (known) known.ai = { headlineJa: data.summary.headlineJa, summary: data.summary.summary };
+      if (known) known.ai = { headlineJa: data.summary.headlineJa, summary: data.summary.summary, method: data.summary.method };
     } else {
-      currentDetail.summaryState = response.status === 503 ? 'disabled' : 'error';
+      currentDetail.summaryState = 'error';
       currentDetail.summaryError = data.error;
     }
   } catch {
@@ -606,10 +602,10 @@ async function showDetail(id) {
     if (data.summary) {
       currentDetail.summaryState = 'done';
       renderDetail();
-    } else if (data.summaryEnabled && !data.item.isSample) {
+    } else if (!data.item.isSample) {
       loadSummary(id);
     } else {
-      currentDetail.summaryState = data.item.isSample ? 'idle' : 'disabled';
+      currentDetail.summaryState = 'idle';
       renderDetail();
     }
   } catch (error) {

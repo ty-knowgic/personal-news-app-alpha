@@ -65,7 +65,11 @@ export interface ArticleContent {
 }
 
 export interface ArticleSummary {
-  /** 日本語の見出し（原題が外国語の場合は訳） */
+  /** 抽出型（本文の文をそのまま抜き出す） / LLM（生成モデルが要約を書く） */
+  method: 'extractive' | 'llm';
+  /** 要約エンジンの ID（例: extractive, local:qwen3-4b, claude） */
+  provider: string;
+  /** 日本語の見出し（LLM の場合、原題が外国語なら訳。抽出型では原題のまま） */
   headlineJa: string;
   summary: string;
   keyPoints: string[];

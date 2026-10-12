@@ -164,7 +164,8 @@ const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離�
 const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b/i;
 
 function trimSummary(value: string): string {
-  const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // 一部のフィード（欧州委員会など）は改行を「\n」という文字列のまま配信するため、空白に置き換える
+  const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\\[nrt]/g, ' ').replace(/\s+/g, ' ').trim();
   if (normalized.length <= 100) {
     return normalized;
   }

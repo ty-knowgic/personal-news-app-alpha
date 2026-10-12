@@ -2,8 +2,9 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchArticleContent } from './articleContent.js';
+import { embedItemsInBackground, getEmbeddingStatus, prepareSemanticScorer } from './embeddings.js';
 import { getNews, getNewsById, listCategoryGroups, listFilterOptions, loadNews } from './newsPipeline.js';
-import { defaultProfile, loadProfile, matchTopics, rankForYou, saveProfile } from './profile.js';
+import { defaultProfile, loadProfile, matchTopics, rankForYou, saveProfile, semanticQueries } from './profile.js';
 import { getStoredSummaries, getSummaryProviderInfo, summarize, summarizeLatestInBackground } from './summarizer.js';
 import type { NewsItem } from './types.js';
 
@@ -20,7 +21,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/config', (_req, res) => {
-  res.json({ summaryEnabled: true, ...getSummaryProviderInfo() });
+  res.json({ summaryEnabled: true, ...getSummaryProviderInfo(), semantic: getEmbeddingStatus() });
 });
 
 // 保存済みの要約があれば一覧用の項目に添える（ここでは新たな要約は作らない）
@@ -30,6 +31,20 @@ async function withStoredSummaries(items: NewsItem[]) {
     const summary = summaries.get(item.id);
     return summary ? { ...item, ai: { headlineJa: summary.headlineJa, summary: summary.summary, method: summary.method } } : item;
   });
+}
+
+// 蓄積中の全記事を、要約があれば要約、なければ一覧の説明文でベクトル化する
+async function embedAllInBackground() {
+  try {
+    const items = await withStoredSummaries(await loadNews());
+    await embedItemsInBackground(items.map(item => ({
+      id: item.id,
+      title: item.title,
+      text: ('ai' in item && item.ai?.summary) || item.summary
+    })));
+  } catch (error) {
+    console.error('[embeddings]', error);
+  }
 }
 
 app.get('/api/filters', (_req, res) => {
@@ -72,9 +87,11 @@ app.get('/api/news', async (req, res) => {
     // どちらの場合も、どの関心トピックに一致したかを添える
     const profile = await loadProfile();
     const withSummaries = await withStoredSummaries(filtered);
+    // 埋め込みモデルが使えない場合は null になり、キーワードだけで判定する
+    const semantic = await prepareSemanticScorer(semanticQueries(profile));
     const result = forYou === '1'
-      ? rankForYou(withSummaries, profile)
-      : withSummaries.map(item => ({ ...item, matches: matchTopics(item, profile) }));
+      ? rankForYou(withSummaries, profile, semantic)
+      : withSummaries.map(item => ({ ...item, matches: matchTopics(item, profile, semantic) }));
 
     // 蓄積データが多くなっても端末側の負荷が増えないよう、ページ単位で返す
     const start = Math.max(0, Number(offset) || 0);
@@ -84,6 +101,8 @@ app.get('/api/news', async (req, res) => {
 
     // 最新記事の要約を裏で進める（抽出型は自動、LLM は AUTO_SUMMARY_LIMIT の件数まで）
     void loadNews().then(summarizeLatestInBackground).catch(error => console.error('[summary]', error));
+    // 新しい記事を意味で判定できるよう、裏でベクトル化しておく
+    void embedAllInBackground();
   } catch (error) {
     console.error('[api/news]', error);
     res.status(500).json({ error: 'ニュースの取得に失敗しました。' });
@@ -144,4 +163,5 @@ app.get('*', (_req, res) => {
 
 app.listen(port, () => {
   console.log(`Personal news app is running at http://localhost:${port}`);
+  void embedAllInBackground();
 });

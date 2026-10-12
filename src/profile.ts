@@ -2,11 +2,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import type { SemanticScorer } from './embeddings.js';
 import type { NewsItem } from './types.js';
 
 /**
  * 関心プロフィールと「マイニュース」の並べ替え。
- * 記事の見出し・説明文・要約に、関心トピックのキーワードが含まれるかで判定する（生成AIは使わない）。
+ * 記事の見出し・説明文・要約に関心トピックのキーワードが含まれるか、または
+ * トピックの説明文と記事の意味が近いか（手元で動く埋め込みモデルによる判定）で一致とする。生成AIは使わない。
  * 将来の複数ユーザー化に備え、プロフィールは ID ごとに保存する。
  */
 
@@ -18,6 +20,8 @@ const TopicSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]{1,40}$/),
   label: z.string().min(1).max(40),
   enabled: z.boolean().default(true),
+  /** 意味で探すための説明文（日本語・英語どちらでも）。空の場合はキーワードだけで判定する（地域名のように意味では判定しにくいトピック） */
+  description: z.string().max(600).optional(),
   /** いずれかを含めば一致（英字は単語単位、大文字小文字を区別しない） */
   keywords: z.array(z.string().min(1).max(60)).max(80).default([]),
   /** 指定した場合、さらにこのいずれかも含む記事だけを一致とする（例: 日本×カナダ） */
@@ -57,11 +61,13 @@ const DEFAULT_PROFILE: Profile = {
       keywords: ['Ontario', 'Ont.', 'Toronto', 'オンタリオ', 'トロント']
     },
     {
-      id: 'genai', label: '生成AI', enabled: true, weight: 1.6, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: false, sourceTypes: [],
+      id: 'genai', label: '生成AI',
+      description: '生成AI: 大規模言語モデル（LLM）、AIエージェント、基盤モデルの研究開発、生成AIの企業導入、AIスタートアップ、AIインフラ。Generative AI, large language models, AI agents, foundation models, enterprise AI adoption, AI startups and AI infrastructure.', enabled: true, weight: 1.6, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: false, sourceTypes: [],
       keywords: ['生成AI', '生成ＡＩ', 'LLM', '大規模言語モデル', 'AIエージェント', 'ChatGPT', 'generative AI', 'GenAI', 'large language model', 'AI agent', 'AI agents', 'foundation model', 'OpenAI', 'Anthropic', 'Gemini', 'Claude', 'Cohere', 'Mistral', 'artificial intelligence']
     },
     {
-      id: 'physical-ai', label: 'Physical AI・ロボット', enabled: true, weight: 1.6, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: false, sourceTypes: [],
+      id: 'physical-ai', label: 'Physical AI・ロボット',
+      description: 'Physical AI・ロボット: ロボティクス、ヒューマノイド、ロボット学習、自動運転、ドローン、身体性AI、シミュレーションと世界モデル。Physical AI and robotics: humanoids, robot learning, manipulation, autonomous vehicles, drones, embodied AI, world models and simulation.', enabled: true, weight: 1.6, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: false, sourceTypes: [],
       keywords: ['Physical AI', 'フィジカルAI', 'ロボット', 'ロボティクス', 'ヒューマノイド', '自動運転', 'robot', 'robots', 'robotics', 'robotic', 'humanoid', 'embodied', 'autonomous vehicle', 'autonomous driving', 'self-driving', 'drone', 'drones', 'manipulation', 'vision-language-action', 'world model']
     },
     {
@@ -72,25 +78,41 @@ const DEFAULT_PROFILE: Profile = {
       alsoRequiresRegions: ['日本']
     },
     {
-      id: 'us-eu-tech-policy', label: '米国・EU のテック政策', enabled: true, weight: 1.2, regions: ['米国', '欧州'], alsoRequiresRegions: [], sources: [], boostOnly: false,
+      id: 'us-eu-tech-policy', label: '米国・EU のテック政策',
+      description: '米国・EUのテクノロジー政策: AI規制、半導体、輸出管理、デジタル市場、サイバーセキュリティ、技術標準。US and EU technology policy: AI regulation and safety, semiconductors, export controls, digital markets, cybersecurity and technical standards.', enabled: true, weight: 1.2, regions: ['米国', '欧州'], alsoRequiresRegions: [], sources: [], boostOnly: false,
       // 企業ブログはどれも「AI」を含むため、政府・研究機関の発表に限る
       sourceTypes: ['official', 'research'],
       keywords: ['AI', 'artificial intelligence', 'AI Act', 'digital', 'semiconductor', 'semiconductors', 'chips', 'quantum', 'cybersecurity', 'standards', 'export control', 'export controls', 'tariff', 'tariffs'],
       alsoRequires: []
     },
     {
-      id: 'math', label: '数学・新発見', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation', 'Quanta Magazine'], boostOnly: false,
+      id: 'math', label: '数学・新発見',
+      description: '数学・新発見: 数学の研究、定理や予想の証明、理論物理や量子などの基礎科学の新しい発見、数理科学の研究者と研究資金。Mathematics and new scientific discoveries: theorems, conjectures, fundamental science, quantum research, mathematicians and research funding.', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation', 'Quanta Magazine'], boostOnly: false,
       keywords: ['数学', '数学者', '定理', 'アルゴリズム', '量子', 'mathematics', 'mathematical', 'mathematician', 'mathematicians', 'theorem', 'conjecture', 'algorithm', 'algorithms', 'topology', 'geometry', 'number theory', 'combinatorics', 'quantum']
     },
     {
       // 本業に近い分野（生成AI・Physical AI・日加など）での提携や資金調達の記事を上位にする
-      id: 'bizdev', label: '提携・資金調達・M&A', enabled: true, weight: 1, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: true, sourceTypes: [],
+      id: 'bizdev', label: '提携・資金調達・M&A',
+      description: '事業提携・資金調達・M&A: 業務提携、資本提携、スタートアップの資金調達、買収、合弁会社、海外市場への進出。Business partnerships, startup funding rounds, acquisitions, joint ventures and market expansion.', enabled: true, weight: 1, regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: [], boostOnly: true, sourceTypes: [],
       keywords: ['業務提携', '資本提携', '資金調達', '買収', '出資', '合弁', 'partnership', 'partners with', 'acquisition', 'acquires', 'funding', 'raises $', 'investment', 'joint venture', 'expansion', 'launches in Canada', 'market entry']
     }
   ]
 };
 
 const cache = new Map<string, Profile>();
+
+/** 説明文の導入前に保存したプロフィールには、初期設定の同じトピックの説明文を補う */
+function withDefaultDescriptions(profile: Profile): Profile {
+  const defaults = new Map(DEFAULT_PROFILE.topics.map(topic => [topic.id, topic.description]));
+  return { ...profile, topics: profile.topics.map(topic => (topic.description === undefined ? { ...topic, description: defaults.get(topic.id) } : topic)) };
+}
+
+/** 意味での一致判定に使う、各トピックの説明文 */
+export function semanticQueries(profile: Profile): { id: string; description: string }[] {
+  return profile.topics
+    .filter(topic => topic.enabled && topic.description?.trim())
+    .map(topic => ({ id: topic.id, description: topic.description!.trim() }));
+}
 
 function profilePath(id: string): string {
   return path.join(PROFILE_DIR, `${id.replace(/[^a-z0-9-]/gi, '')}.json`);
@@ -101,7 +123,7 @@ export async function loadProfile(id = DEFAULT_PROFILE_ID): Promise<Profile> {
   if (cached) return cached;
   let profile = DEFAULT_PROFILE;
   try {
-    profile = ProfileSchema.parse(JSON.parse(await readFile(profilePath(id), 'utf8')));
+    profile = withDefaultDescriptions(ProfileSchema.parse(JSON.parse(await readFile(profilePath(id), 'utf8'))));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       console.warn(`[profile] 読み込みに失敗したため初期設定を使います: ${(error as Error).message}`);
@@ -170,11 +192,22 @@ function compile(topic: Topic): CompiledTopic {
 export interface TopicMatch {
   id: string;
   label: string;
-  /** 見出し（または発信元）で一致した場合 1、本文・説明文だけで一致した場合 0.5 */
+  /** 0〜1。見出し（または発信元）で一致した場合 1、本文・説明文だけで一致した場合 0.5、意味の近さで一致した場合はその度合い */
   strength: number;
+  /** 一致の根拠: キーワード / 意味の近さ / 発信元 */
+  via: 'keyword' | 'semantic' | 'source';
 }
 
-export function matchTopics(item: NewsItem & { ai?: { summary?: string; headlineJa?: string } }, profile: Profile): TopicMatch[] {
+/** 類似度がしきい値ちょうどなら 0.5、しきい値より 0.1 以上高ければ 1 */
+function semanticStrength(similarity: number, threshold: number): number {
+  return Math.min(1, 0.5 + (similarity - threshold) * 5);
+}
+
+export function matchTopics(
+  item: NewsItem & { ai?: { summary?: string; headlineJa?: string } },
+  profile: Profile,
+  semantic?: SemanticScorer | null
+): TopicMatch[] {
   const headline = `${item.title} ${item.ai?.headlineJa ?? ''}`;
   const text = `${headline} ${item.summary} ${item.ai?.summary ?? ''} ${item.sourceName}`;
   const matches: TopicMatch[] = [];
@@ -184,16 +217,27 @@ export function matchTopics(item: NewsItem & { ai?: { summary?: string; headline
     if (topic.regions.length && !topic.regions.includes(item.subgroup)) continue;
     if (topic.sourceTypes.length && !topic.sourceTypes.includes(item.sourceType)) continue;
     if (topic.sources.includes(item.sourceName)) {
-      matches.push({ id: topic.id, label: topic.label, strength: 1 });
+      matches.push({ id: topic.id, label: topic.label, strength: 1, via: 'source' });
       continue;
     }
     const { keywords, shortUpper, alsoRequires } = compile(topic);
-    const hit = Boolean(keywords?.test(text) || shortUpper?.test(text));
-    if (!hit) continue;
+    // 「日本×カナダ」のような組み合わせの条件は、意味で一致した場合にも満たす必要がある
     if (alsoRequires && !topic.alsoRequiresRegions.includes(item.subgroup) && !alsoRequires.test(text)) continue;
+
+    const hit = Boolean(keywords?.test(text) || shortUpper?.test(text));
     // 見出しに関心の語がある記事は、本文で触れているだけの記事より関連が強い
-    const inHeadline = Boolean(keywords?.test(headline) || shortUpper?.test(headline));
-    matches.push({ id: topic.id, label: topic.label, strength: inHeadline ? 1 : 0.5 });
+    const keywordStrength = !hit ? 0 : (keywords?.test(headline) || shortUpper?.test(headline)) ? 1 : 0.5;
+    // キーワードを含まなくても、トピックの説明文と意味が近い記事は一致とする（例: 「ロボット」と書かずにロボット学習を扱う論文）
+    const similarity = semantic?.similarity(item.id, topic.id);
+    const meaningStrength = similarity !== undefined && similarity >= semantic!.threshold ? semanticStrength(similarity, semantic!.threshold) : 0;
+
+    if (!keywordStrength && !meaningStrength) continue;
+    matches.push({
+      id: topic.id,
+      label: topic.label,
+      strength: Math.max(keywordStrength, meaningStrength),
+      via: keywordStrength ? 'keyword' : 'semantic'
+    });
   }
 
   // 補助的なトピック（提携・資金調達など）だけに一致した記事は対象外
@@ -201,13 +245,13 @@ export function matchTopics(item: NewsItem & { ai?: { summary?: string; headline
   return matches.some(match => !boostOnly.has(match.id)) ? matches : [];
 }
 
-/** マイニュースの並べ替え: 一致したトピックの重みの合計 × 新しさ（3日で約半分になる） */
-export function rankForYou<T extends NewsItem>(items: T[], profile: Profile): (T & { matches: TopicMatch[] })[] {
+/** マイニュースの並べ替え: 一致したトピックの重み × 一致の強さの合計 × 新しさ（3日で約半分になる） */
+export function rankForYou<T extends NewsItem>(items: T[], profile: Profile, semantic?: SemanticScorer | null): (T & { matches: TopicMatch[] })[] {
   const weights = new Map(profile.topics.map(topic => [topic.id, topic.weight]));
   const now = Date.now();
 
   return items
-    .map(item => ({ ...item, matches: matchTopics(item, profile) }))
+    .map(item => ({ ...item, matches: matchTopics(item, profile, semantic) }))
     .filter(item => item.matches.length > 0)
     .map((item) => {
       const relevance = item.matches.reduce((sum, match) => sum + (weights.get(match.id) ?? 1) * match.strength, 0);

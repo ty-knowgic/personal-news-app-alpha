@@ -225,7 +225,10 @@ function cardSummary(item) {
 function matchChips(item) {
   if (!item.matches?.length) return '';
   return `<span class="match-chips" aria-label="関心: ${escapeHtml(item.matches.map(m => m.label).join('、'))}">${
-    item.matches.slice(0, 3).map(match => `<span class="match-chip">${escapeHtml(match.label)}</span>`).join('')
+    item.matches.slice(0, 3).map(match => (match.via === 'semantic'
+      // キーワードは含まないが、内容が関心に近いと判定された記事
+      ? `<span class="match-chip is-semantic" title="キーワードではなく内容の近さで一致">${escapeHtml(match.label)}</span>`
+      : `<span class="match-chip">${escapeHtml(match.label)}</span>`)).join('')
   }</span>`;
 }
 
@@ -773,6 +776,10 @@ function renderTopicEditor(topic, index) {
           </label>`).join('')}
       </div>
       <label class="field">
+        <span>説明（内容の近さで探します。キーワードを含まない記事も対象になります。空欄ならキーワードだけで判定）</span>
+        <textarea data-field="description" rows="3" maxlength="600" placeholder="読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです">${escapeHtml(topic.description ?? '')}</textarea>
+      </label>
+      <label class="field">
         <span>キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）</span>
         <textarea data-field="keywords" rows="3">${escapeHtml(topic.keywords.join(', '))}</textarea>
       </label>
@@ -781,10 +788,21 @@ function renderTopicEditor(topic, index) {
   `;
 }
 
+// 内容の近さによる判定（手元の埋め込みモデル）が使えるかどうか
+function semanticStatusNote() {
+  const semantic = state.config?.semantic;
+  if (!semantic) return '';
+  if (!semantic.enabled) return '<p class="settings-note">内容の近さによる判定は無効です（キーワードだけで判定しています）。</p>';
+  return semantic.available
+    ? `<p class="settings-note"><span class="match-chip is-semantic">生成AI</span> のように「≈」が付いた関心は、キーワードではなく内容の近さで一致した記事です。判定はこのサーバー上の埋め込みモデル（${escapeHtml(semantic.model)}）で行い、外部の AI サービスは使いません。</p>`
+    : `<p class="settings-note is-warning">埋め込みモデル（${escapeHtml(semantic.model)}）に接続できないため、いまはキーワードだけで判定しています。</p>`;
+}
+
 function renderSettings() {
   settingsView.innerHTML = `
     <h1 class="settings-title">マイニュースの設定</h1>
-    <p class="settings-lead">関心のあるトピックとキーワードを登録すると、見出し・本文に一致する記事を関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。</p>
+    <p class="settings-lead">関心のあるトピックを登録すると、キーワードを含む記事と、説明に内容が近い記事を、関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。</p>
+    ${semanticStatusNote()}
     <div id="topicList">${profileDraft.topics.map(renderTopicEditor).join('')}</div>
     <button class="add-topic" type="button" data-action="add-topic">＋ トピックを追加</button>
     <div class="settings-actions">
@@ -802,6 +820,7 @@ function collectSettings() {
     topic.label = editor.querySelector('[data-field="label"]').value.trim() || topic.label;
     topic.weight = Number(editor.querySelector('[data-field="weight"]:checked')?.value ?? topic.weight);
     topic.keywords = splitKeywords(editor.querySelector('[data-field="keywords"]').value);
+    topic.description = editor.querySelector('[data-field="description"]').value.trim();
   });
 }
 
@@ -816,7 +835,13 @@ async function showSettings() {
   window.scrollTo(0, 0);
   settingsView.innerHTML = '<div class="empty-state">読み込み中…</div>';
   try {
-    profileDraft = await (await fetch('/api/profile')).json();
+    const [profile, config] = await Promise.all([
+      fetch('/api/profile').then(r => r.json()),
+      // 埋め込みモデルの接続状況は変わりうるため、設定画面を開くたびに確認する
+      fetch('/api/config').then(r => r.json()).catch(() => state.config)
+    ]);
+    profileDraft = profile;
+    state.config = config;
     renderSettings();
   } catch {
     settingsView.innerHTML = '<div class="empty-state"><strong>設定を読み込めませんでした</strong>通信状況を確認してください。</div>';
@@ -836,7 +861,7 @@ settingsView.addEventListener('click', async (event) => {
   if (action === 'add-topic') {
     collectSettings();
     profileDraft.topics.push({
-      id: `custom-${Date.now().toString(36)}`, label: '新しいトピック', enabled: true, weight: 1, keywords: [],
+      id: `custom-${Date.now().toString(36)}`, label: '新しいトピック', enabled: true, weight: 1, keywords: [], description: '',
       alsoRequires: [], alsoRequiresRegions: [], regions: [], sourceTypes: [], sources: [], boostOnly: false
     });
     renderSettings();
@@ -853,7 +878,7 @@ settingsView.addEventListener('click', async (event) => {
     showToast('初期設定に戻しました');
   } else if (action === 'save-profile') {
     collectSettings();
-    profileDraft.topics = profileDraft.topics.filter(topic => topic.keywords.length || topic.sources?.length);
+    profileDraft.topics = profileDraft.topics.filter(topic => topic.keywords.length || topic.description || topic.sources?.length);
     const response = await fetch('/api/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -902,7 +927,7 @@ window.addEventListener('hashchange', route);
 
   const [categories] = await Promise.all([
     fetch('/api/filters').then(r => r.json()).then((filters) => { renderFilterOptions(filters); return filters.categories; }).catch(() => []),
-    fetch('/api/config').then(r => r.json()).then(config => { state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {})
+    fetch('/api/config').then(r => r.json()).then(config => { state.config = config; state.summaryEnabled = Boolean(config.summaryEnabled); }).catch(() => {})
   ]);
   renderTabs(categories);
   syncFilterControls();

@@ -53,12 +53,13 @@ export const officialFeeds: FeedSource[] = [
   // 経済（企業の発表）: 提携・買収・決算・事業展開・事故や不祥事など、企業活動に関するプレスリリース
   { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: 'PR TIMES', sourceUrl: 'https://prtimes.jp/', feedUrl: 'https://prtimes.jp/index.rdf', label: 'PR TIMES（企業の一次発表）' },
   { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: '@Press', sourceUrl: 'https://www.atpress.ne.jp/', feedUrl: 'https://www.atpress.ne.jp/rss/index.rdf', label: '@Press（企業の一次発表）' },
-  { sourceType: 'corporate', category: '経済', subgroup: 'グローバル', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/earnings-list.rss', label: 'PR Newswire 決算発表', languages: ['en'] },
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: 'グローバル', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/mergers-and-acquisitions-list.rss', label: 'PR Newswire M&A', languages: ['en'] },
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: 'グローバル', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/general-business-latest-news/general-business-latest-news-list.rss', label: 'PR Newswire 一般ビジネス', languages: ['en'] },
+  { sourceType: 'corporate', category: '経済', subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/earnings-list.rss', label: 'PR Newswire 決算発表', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/mergers-and-acquisitions-list.rss', label: 'PR Newswire M&A', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/general-business-latest-news/general-business-latest-news-list.rss', label: 'PR Newswire 一般ビジネス', languages: ['en'] },
   // 投資（政府系の投資、スタートアップの資金調達）
+  { sourceType: 'corporate', category: '投資', subgroup: 'カナダ', sourceName: 'Cision Canada', sourceUrl: 'https://www.newswire.ca/', feedUrl: 'https://www.newswire.ca/rss/financial-services-latest-news/venture-capital-list.rss', label: 'Cision Canada Venture Capital（企業の一次発表）', languages: ['en'] },
   { sourceType: 'official', category: '投資', subgroup: '日本', sourceName: 'GPIF', sourceUrl: 'https://www.gpif.go.jp/', feedUrl: 'https://www.gpif.go.jp/rss.xml', label: '年金積立金管理運用独立行政法人' },
-  { sourceType: 'corporate', category: '投資', subgroup: 'グローバル', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/venture-capital-list.rss', label: 'PR Newswire Venture Capital（企業の一次発表）', languages: ['en'] },
+  { sourceType: 'corporate', category: '投資', subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/venture-capital-list.rss', label: 'PR Newswire Venture Capital（企業の一次発表）', languages: ['en'] },
   // 社会・国際
   { sourceType: 'official', category: '社会', subgroup: '日本', sourceName: '厚生労働省', sourceUrl: 'https://www.mhlw.go.jp/', feedUrl: 'https://www.mhlw.go.jp/stf/news.rdf', label: '厚生労働省 新着情報' },
   { sourceType: 'official', category: '社会', subgroup: '日本', sourceName: '文部科学省', sourceUrl: 'https://www.mext.go.jp/', feedUrl: 'https://www.mext.go.jp/b_menu/news/index.rdf', label: '文部科学省 新着情報' },
@@ -93,7 +94,8 @@ export const officialFeeds: FeedSource[] = [
       [/\/en\/global-affairs\//, '国際'],
       [/\/en\/(innovation-science-economic-development|radio-television-telecommunications)\//, 'テクノロジー'],
       [/\/en\/(department-finance|competition-bureau|[a-z-]*economic-development[a-z-]*|fednor|treasury-board-secretariat)\//, '経済'],
-      [/\/en\/(national-defence|public-safety-canada|communications-security-establishment|security-intelligence-service|canada-border-services-agency)\//, '安全保障'],
+      [/\/en\/(department-national-defence|national-defence|public-safety-canada|communications-security-establishment|security-intelligence-service|(canada-)?border-services-agency)\//, '安全保障'],
+      [/\/en\/(space-agency|canadian-space-agency|national-research-council|natural-sciences-engineering-research|social-sciences-humanities-research|institutes-health-research)[a-z-]*\//, 'サイエンス'],
       [/\/en\/canadian-heritage\//, '文化・芸術'],
       [/\/en\/(health-canada|public-health|employment-social-development|immigration-refugees-citizenship|indigenous-services-canada|environment-climate-change|housing-infrastructure-communities)\//, '社会']
     ]
@@ -104,6 +106,9 @@ export const officialFeeds: FeedSource[] = [
   { sourceType: 'research', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'CIFAR', sourceUrl: 'https://cifar.ca/', feedUrl: 'https://cifar.ca/feed/', label: 'CIFAR（カナダ先端研究機構）' },
   { sourceType: 'research', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'Vector Institute', sourceUrl: 'https://vectorinstitute.ai/', feedUrl: 'https://vectorinstitute.ai/feed/', label: 'Vector Institute（AI 研究所）', maxItems: 10 },
   // 欧州・米国のデジタル政策
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '英国科学・イノベーション・技術省', sourceUrl: 'https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology', feedUrl: 'https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology.atom', label: 'UK Department for Science, Innovation and Technology', maxItems: 10 },
+  { sourceType: 'official', category: '生成AI', subgroup: '欧州', sourceName: '英国 AI Security Institute', sourceUrl: 'https://www.aisi.gov.uk/', feedUrl: 'https://www.gov.uk/government/organisations/ai-security-institute.atom', label: 'UK AI Security Institute' },
+  { sourceType: 'official', category: '経済', subgroup: '欧州', sourceName: 'イングランド銀行', sourceUrl: 'https://www.bankofengland.co.uk/news', feedUrl: 'https://www.bankofengland.co.uk/rss/news', label: 'Bank of England News', maxItems: 6 },
   { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '欧州委員会（デジタル）', sourceUrl: 'https://digital-strategy.ec.europa.eu/', feedUrl: 'https://digital-strategy.ec.europa.eu/en/rss.xml', label: 'Shaping Europe’s digital future' },
   // Physical AI（ロボティクス）
   // 安全保障（防衛・サイバーセキュリティ）
@@ -122,7 +127,32 @@ export const officialFeeds: FeedSource[] = [
     feedUrl: 'https://export.arxiv.org/api/query?search_query=cat:cs.RO+AND+(abs:humanoid+OR+abs:%22foundation+model%22+OR+abs:%22vision-language-action%22+OR+abs:%22world+model%22+OR+abs:embodied)&sortBy=submittedDate&sortOrder=descending&max_results=15',
     label: 'arXiv cs.RO（Physical AI 関連の新着論文）', maxItems: 10
   },
+  // 生成AI・AI 研究（企業の研究部門、研究機関、大学）
+  { sourceType: 'corporate', category: '生成AI', subgroup: '米国', sourceName: 'Microsoft Research', sourceUrl: 'https://www.microsoft.com/en-us/research/', feedUrl: 'https://www.microsoft.com/en-us/research/feed/', label: 'Microsoft Research Blog', maxItems: 8 },
+  { sourceType: 'corporate', category: '生成AI', subgroup: '米国', sourceName: 'Google Research', sourceUrl: 'https://research.google/blog/', feedUrl: 'https://research.google/blog/rss/', label: 'Google Research Blog' },
+  { sourceType: 'corporate', category: '生成AI', subgroup: '米国', sourceName: 'Apple', sourceUrl: 'https://machinelearning.apple.com/', feedUrl: 'https://machinelearning.apple.com/rss.xml', label: 'Apple Machine Learning Research', maxItems: 6 },
+  { sourceType: 'corporate', category: '生成AI', subgroup: 'グローバル', sourceName: 'Hugging Face', sourceUrl: 'https://huggingface.co/blog', feedUrl: 'https://huggingface.co/blog/feed.xml', label: 'Hugging Face Blog（オープンなAIモデルの公開）', maxItems: 6 },
+  { sourceType: 'npo', category: '生成AI', subgroup: '米国', sourceName: 'Ai2', sourceUrl: 'https://allenai.org/', feedUrl: 'https://allenai.org/rss.xml', label: 'Allen Institute for AI（非営利の AI 研究所）', maxItems: 6 },
+  { sourceType: 'research', category: '生成AI', subgroup: '米国', sourceName: 'MIT', sourceUrl: 'https://news.mit.edu/topic/artificial-intelligence2', feedUrl: 'https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml', label: 'MIT News（AI の研究成果）', maxItems: 8 },
+  // テクノロジー（半導体・通信・ロボティクス）
+  { sourceType: 'research', category: 'テクノロジー', subgroup: '米国', sourceName: 'カーネギーメロン大学', sourceUrl: 'https://www.ri.cmu.edu/news/', feedUrl: 'https://www.ri.cmu.edu/feed/', label: 'CMU Robotics Institute（ロボティクス研究）', maxItems: 8 },
+  { sourceType: 'research', category: 'テクノロジー', subgroup: '米国', sourceName: 'MIT', sourceUrl: 'https://news.mit.edu/topic/robotics', feedUrl: 'https://news.mit.edu/topic/mitrobotics-rss.xml', label: 'MIT News（ロボティクス）', maxItems: 6 },
+  { sourceType: 'corporate', category: 'テクノロジー', subgroup: '米国', sourceName: 'NVIDIA', sourceUrl: 'https://nvidianews.nvidia.com/', feedUrl: 'https://nvidianews.nvidia.com/releases.xml', label: 'NVIDIA Newsroom（プレスリリース）' },
+  { sourceType: 'corporate', category: 'テクノロジー', subgroup: '日本', sourceName: 'NTT', sourceUrl: 'https://www.ntt.com/about-us/press-releases.html', feedUrl: 'https://www.ntt.com/index/rss.xml', label: 'NTT ドコモビジネス ニュースリリース', maxItems: 8 },
+  { sourceType: 'corporate', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'Clearpath Robotics', sourceUrl: 'https://clearpathrobotics.com/', feedUrl: 'https://www.clearpathrobotics.com/feed/', label: 'Clearpath Robotics（キッチナーのロボット企業）' },
+  { sourceType: 'corporate', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'Sanctuary AI', sourceUrl: 'https://sanctuary.ai/', feedUrl: 'https://sanctuary.ai/feed/', label: 'Sanctuary AI（バンクーバーのヒューマノイド企業）' },
+  { sourceType: 'research', category: 'テクノロジー', subgroup: '欧州', sourceName: 'Fraunhofer', sourceUrl: 'https://www.fraunhofer.de/en/press.html', feedUrl: 'https://www.fraunhofer.de/en/rss/press.rss', label: 'Fraunhofer（欧州最大の応用研究機関）', maxItems: 8 },
+  // 宇宙・基礎科学
+  { sourceType: 'official', category: 'サイエンス', subgroup: '米国', sourceName: 'NASA', sourceUrl: 'https://www.nasa.gov/news/', feedUrl: 'https://www.nasa.gov/news-release/feed/', label: 'NASA ニュースリリース', maxItems: 8, excludeRoutine: true },
+  { sourceType: 'official', category: 'サイエンス', subgroup: '日本', sourceName: 'JAXA', sourceUrl: 'https://www.jaxa.jp/press/', feedUrl: 'https://www.jaxa.jp/rss/press_j.rdf', label: '宇宙航空研究開発機構 プレスリリース' },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '日本', sourceName: '国立天文台', sourceUrl: 'https://www.nao.ac.jp/news/', feedUrl: 'https://www.nao.ac.jp/atom.xml', label: '国立天文台 ニュース', maxItems: 8 },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '日本', sourceName: 'KEK', sourceUrl: 'https://www.kek.jp/ja/', feedUrl: 'https://www.kek.jp/ja/feed/', label: '高エネルギー加速器研究機構', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '日本', sourceName: 'Kavli IPMU', sourceUrl: 'https://www.ipmu.jp/', feedUrl: 'https://www.ipmu.jp/en/rss.xml', label: 'カブリ数物連携宇宙研究機構（数学・物理）', maxItems: 6 },
+  { sourceType: 'official', category: 'サイエンス', subgroup: '欧州', sourceName: 'ESA', sourceUrl: 'https://www.esa.int/Science_Exploration/Space_Science', feedUrl: 'https://www.esa.int/rssfeed/Our_Activities/Space_Science', label: '欧州宇宙機関 宇宙科学' },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '欧州', sourceName: 'EMBL', sourceUrl: 'https://www.embl.org/news/', feedUrl: 'https://www.embl.org/news/feed/', label: '欧州分子生物学研究所' },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '米国', sourceName: 'MIT', sourceUrl: 'https://news.mit.edu/research', feedUrl: 'https://news.mit.edu/rss/research', label: 'MIT News（研究成果）', maxItems: 8 },
   // 数学・科学の新発見
+  { sourceType: 'npo', category: 'サイエンス', subgroup: '米国', sourceName: 'Clay Mathematics Institute', sourceUrl: 'https://www.claymath.org/', feedUrl: 'https://www.claymath.org/news/feed/', label: 'クレイ数学研究所（ミレニアム懸賞問題）' },
   { sourceType: 'research', category: 'サイエンス', subgroup: '米国', sourceName: 'Simons Foundation', sourceUrl: 'https://www.simonsfoundation.org/', feedUrl: 'https://www.simonsfoundation.org/feed/', label: 'Simons Foundation（数学・物理）' }
 ];
 
@@ -159,7 +189,7 @@ const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgr
   },
   {
     category: '投資',
-    pattern: /資金調達|第三者割当増資|シリーズ[A-FＡ-Ｆ](ラウンド)?|シードラウンド|プレシリーズ|ベンチャーキャピタル|スタートアップ(への)?(投資|出資|支援|育成)|出資(を受け|契約|決定)|官民ファンド|国内投資|投資促進|GX投資|対日投資|直接投資|設備投資|投資計画|\braise[sd]? \$|funding round|\bSeries [A-F]\b|seed (round|funding)|venture capital|growth equity/i
+    pattern: /資金調達|第三者割当増資|シリーズ[A-FＡ-Ｆ](ラウンド)?|シードラウンド|プレシリーズ|ベンチャーキャピタル|スタートアップ(への)?(投資|出資|支援|育成)|出資(を受け|契約|決定)|官民ファンド|国内投資|投資促進|GX投資|対日投資|直接投資|設備投資|投資計画|\braise[sd]? \$|funding round|\bSeries [A-F]\b|seed (round|funding)|venture capital|growth equity|億円(を|の)?(投資|出資|拠出)|\b(invest(s|ing|ment of)?|funding of|commit(s|ting)?|award(s|ing)?) (up to |over |more than |nearly |almost )?(C|US)?\$[\d.,]+ ?(million|billion|M\b|B\b)/i
   },
   {
     // ロボティクス・量子・半導体など（Physical AI を含む）
@@ -228,9 +258,12 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
 ];
 
 // 公的機関の発表のうち、ニュース性の低い定型的なお知らせ（入札結果、採用募集など）
-const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券|^Weekly Report:/;
+const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券|^Weekly Report:|^APOD:/;
 // 自治体の発表のうち、日々の定型的なお知らせ（通行止め、水道管の破損、施設の休業、撮影の告知など）
 const LOCAL_ROUTINE_NOTICE = /^(road|trail|sidewalk|lane) closures?\b|road closures report|watermain break|filming notification|holiday hours|closed .{0,40}for maintenance|what['’]s open and closed|committee of adjustment meeting/i;
+
+// 政府の挨拶・記念日の声明（祝日の挨拶など。事実の発表を含まない）
+const GREETINGS = /\b(shares?|extends?|sends?|offers?) .{0,40}\b(greetings|wishes)\b|^(statement|message) (by|from) .{0,80}\bon (the )?(occasion of|[A-Z][\w'’-]*( [A-Z][\w'’-]*)* (Day|Week|Month|Festival|Holiday))\b|\bthanksgiving (greetings|message)\b|\bto (hold a |hold )?(press|media) (conference|availability)\b|^media advisory\b|^[^:]{0,80}\bto announce\b|\bto make an? (important |major )?announcement\b/i;
 
 function isRoutine(title: string): boolean {
   return ROUTINE_NOTICE.test(title) || LOCAL_ROUTINE_NOTICE.test(title);
@@ -239,11 +272,24 @@ function isRoutine(title: string): boolean {
 // 企業の発表を装った法律事務所の集団訴訟勧誘などは、企業活動の情報ではないため除外する
 // ウェビナー・セミナーの告知も、企業活動そのものの情報ではないため除外する
 // 「生成AIが選ぶ◯◯、1位は…（言及率）」のような、AI 検索向けの広告を兼ねた順位調査も除外する
-const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率/i;
+const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率|LLMO|AIO対策|AI検索対策|交流会/i;
 
 /** PR TIMES などの説明文に含まれる「[画像: URL]」や、先頭の「[会社名]」を取り除く */
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/** 二重にエスケープされたフィード（「&amp;amp;」など）の文字参照を戻す */
+function decodeEntities(value: string): string {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
+    if (code[0] === '#') {
+      const point = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isFinite(point) && point > 0 && point < 0x110000 ? String.fromCodePoint(point) : match;
+    }
+    return NAMED_ENTITIES[code.toLowerCase()] ?? match;
+  });
+}
+
 export function cleanFeedText(value: string): string {
-  return value
+  return decodeEntities(value)
     .replace(/\[(画像|動画)[^\]]*(\]|$)/g, ' ')
     .replace(/^\s*\[[^\]]{1,60}\]\s*/, '')
     .replace(/\s+/g, ' ')
@@ -271,7 +317,7 @@ function textOf(value: unknown): string {
 }
 
 function normalizeTitle(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return decodeEntities(value).replace(/\s+/g, ' ').trim();
 }
 
 function baseCategory(source: FeedSource, link: string): CategoryKey | undefined {
@@ -377,8 +423,28 @@ function decodeFeed(buffer: ArrayBuffer, contentType: string | null): string {
 
 function toIsoDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const date = new Date(value);
+  // 「JST」のようなタイムゾーン名は解釈できないため、時差に置き換える（金融庁など）
+  const date = new Date(value.replace(/\bJST\b/, '+0900'));
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+/** 情報源ごとの直近の取得結果（設定画面と品質チェックで、取得できていない情報源を見つけるため） */
+export interface FeedHealth {
+  checkedAt: string;
+  ok: boolean;
+  /** フィードに載っていた記事数（取り込み対象外のものを含む） */
+  entries: number;
+  /** 取り込んだ記事数 */
+  imported: number;
+  /** フィードで最も新しい記事の日時（更新の少ない情報源と、取り込みの不具合を区別するため） */
+  newestEntry?: string;
+  error?: string;
+}
+
+const feedHealth = new Map<string, FeedHealth>();
+
+function recordHealth(source: FeedSource, health: Omit<FeedHealth, 'checkedAt'>): void {
+  feedHealth.set(source.feedUrl, { checkedAt: new Date().toISOString(), ...health });
 }
 
 async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
@@ -389,6 +455,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
     });
     if (!response.ok) {
       console.warn(`[feed] ${source.sourceName}: HTTP ${response.status}`);
+      recordHealth(source, { ok: false, entries: 0, imported: 0, error: `HTTP ${response.status}` });
       return [];
     }
 
@@ -401,7 +468,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
 
     // フィードによっては新しい順に並んでいないため、日付順に並べ替えてから取り込む
     const sorted = [...(parsed.items ?? [])].sort(
-      (a, b) => (Date.parse(b.isoDate ?? b.pubDate ?? '') || 0) - (Date.parse(a.isoDate ?? a.pubDate ?? '') || 0)
+      (a, b) => (Date.parse(toIsoDate(b.isoDate ?? b.pubDate) ?? '') || 0) - (Date.parse(toIsoDate(a.isoDate ?? a.pubDate) ?? '') || 0)
     );
 
     for (const item of sorted) {
@@ -418,6 +485,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
 
       const description = trimSummary(textOf(item.contentSnippet ?? item.content ?? item.summary));
       if (source.excludeRoutine && isRoutine(title)) continue;
+      if (source.sourceType === 'official' && GREETINGS.test(title)) continue;
       if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${title} ${description}`)) continue;
 
       const categories = classify(source, title, description, link);
@@ -437,9 +505,12 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
       }, categories));
     }
 
+    const newest = sorted.map(item => toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date)).find(Boolean);
+    recordHealth(source, { ok: true, entries: parsed.items?.length ?? 0, imported: items.length, newestEntry: newest });
     return items;
   } catch (error) {
     console.warn(`[feed] ${source.sourceName}: ${(error as Error).message}`);
+    recordHealth(source, { ok: false, entries: 0, imported: 0, error: (error as Error).message.slice(0, 120) });
     return [];
   }
 }
@@ -460,10 +531,11 @@ async function loadArchive(): Promise<Map<string, NewsItem>> {
       const source = feedsByUrl.get(item.feedUrl);
       if (!source) continue;
       if (source.excludeRoutine && isRoutine(item.title)) continue;
+      if (source.sourceType === 'official' && GREETINGS.test(item.title)) continue;
       if (source.sourceType === 'corporate' && PROMOTIONAL_NOISE.test(`${item.title} ${item.summary}`)) continue;
       const categories = classify(source, item.title, item.summary, item.sourceUrl);
       if (categories.length === 0) continue;
-      const refreshed = finalizeItem({ ...item, summary: cleanFeedText(item.summary), subgroup: source.subgroup, sourceName: source.sourceName, sourceType: source.sourceType }, categories);
+      const refreshed = finalizeItem({ ...item, title: normalizeTitle(item.title), summary: cleanFeedText(item.summary), subgroup: source.subgroup, sourceName: source.sourceName, sourceType: source.sourceType }, categories);
       archive.set(refreshed.id, refreshed);
     }
   } catch (error) {
@@ -513,7 +585,9 @@ export function listSources() {
     label: feed.label,
     subgroup: feed.subgroup,
     categories: feed.category ? [feed.category] : (feed.matchOnly ?? []),
-    sourceUrl: feed.sourceUrl
+    sourceUrl: feed.sourceUrl,
+    feedUrl: feed.feedUrl,
+    health: feedHealth.get(feed.feedUrl) ?? null
   }));
 }
 

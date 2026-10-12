@@ -99,7 +99,7 @@ const DEFAULT_PROFILE: Profile = {
     },
     {
       id: 'math', label: '数学・新発見',
-      description: '数学・新発見: 数学の研究、定理や予想の証明、理論物理や量子などの基礎科学の新しい発見、数理科学の研究者と研究資金。Mathematics and new scientific discoveries: theorems, conjectures, fundamental science, quantum research, mathematicians and research funding.', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation'], boostOnly: false,
+      description: '数学・新発見: 数学の研究、定理や予想の証明、理論物理や量子などの基礎科学の新しい発見、数理科学の研究者と研究資金。Mathematics and new scientific discoveries: theorems, conjectures, fundamental science, quantum research, mathematicians and research funding.', enabled: true, weight: 1.5, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['Simons Foundation', 'Clay Mathematics Institute'], boostOnly: false,
       keywords: ['数学', '数学者', '定理', 'アルゴリズム', '量子', 'mathematics', 'mathematical', 'mathematician', 'mathematicians', 'theorem', 'conjecture', 'algorithm', 'algorithms', 'topology', 'geometry', 'number theory', 'combinatorics', 'quantum']
     },
     {
@@ -222,10 +222,15 @@ export interface TopicMatch {
 
 /** キーワードで一致しても、類似度がしきい値よりこれ以上低ければ弱い一致とする（手元の評価では、ここより下はほとんどが誤一致） */
 const WEAK_MARGIN = 0.13;
+/** 発信元で一致した記事を、内容が離れているとみなす差（手元の評価: 植物学の奨学金 0.21、数学関連 0.25 以上） */
+const SOURCE_MARGIN = 0.04;
 
-/** 類似度がしきい値ちょうどなら 0.5、しきい値より 0.1 以上高ければ 1 */
+/**
+ * 類似度がしきい値ちょうどなら 0.3、しきい値より約 0.09 高ければ 1。
+ * しきい値付近は「AI の家庭教師」が Physical AI に一致するような誤りが多いため、弱い一致として扱う
+ */
 function semanticStrength(similarity: number, threshold: number): number {
-  return Math.min(1, 0.5 + (similarity - threshold) * 5);
+  return Math.min(1, 0.3 + (similarity - threshold) * 8);
 }
 
 export function matchTopics(
@@ -242,7 +247,11 @@ export function matchTopics(
     if (topic.regions.length && !topic.regions.includes(item.subgroup)) continue;
     if (topic.sourceTypes.length && !topic.sourceTypes.includes(item.sourceType)) continue;
     if (topic.sources.includes(item.sourceName)) {
-      matches.push({ id: topic.id, label: topic.label, strength: 1, via: 'source' });
+      // 発信元で一致としても、内容がトピックと大きく離れている記事（例: 数学の財団による植物学の奨学金）は弱い一致にする
+      const similarity = semantic?.similarity(item.id, topic.id);
+      // 発信元は分野が広い場合がある（Simons Foundation は数学以外の科学も扱う）ため、キーワードより厳しく判定する
+      const offTopic = similarity !== undefined && similarity < semantic!.threshold - SOURCE_MARGIN;
+      matches.push({ id: topic.id, label: topic.label, strength: offTopic ? 0.3 : 1, via: 'source' });
       continue;
     }
     const { keywords, shortUpper, alsoRequires } = compile(topic);

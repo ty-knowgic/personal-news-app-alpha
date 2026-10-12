@@ -42,12 +42,12 @@ npm run dev
 | 政治 | 首相官邸、総務省 | カナダ政府（全省庁）、オンタリオ州政府 | 米国務省 |
 | 経済（公的機関） | 日本銀行、財務省、経済産業省、金融庁、JPX | カナダ銀行、カナダ統計局、カナダ政府（財務・地域経済開発など） | FRB、ECB |
 | 経済（企業） | PR TIMES、@Press（企業活動に関する発表のみ） | | PR Newswire（決算・M&A・一般ビジネス） |
-| 投資 | GPIF、PR TIMES（資金調達など） | | PR Newswire（Venture Capital） |
+| 投資 | GPIF、PR TIMES（資金調達など） | Cision Canada（Venture Capital）、カナダ政府・オンタリオ州の投資・助成 | PR Newswire（Venture Capital） |
 | 社会 | 厚生労働省、文部科学省 | ウォータールー市、キッチナー市、ケンブリッジ市、ウォータールー・リージョン、カナダ政府（保健・移民など） | 米CDC |
 | 国際 | JETRO ビジネス短信 | カナダ政府（グローバル・アフェアーズ） | WHO、欧州委員会、英国外務省 |
-| テクノロジー | デジタル庁、JST | カナダ政府（ISED）、CIFAR、Vector Institute | NIST、NSF、NVIDIA、欧州委員会（デジタル政策）、Linux Foundation、arXiv（Physical AI 関連論文） |
-| 生成AI | Sakana AI、PR TIMES（生成AI関連のみ） | | OpenAI、Google DeepMind、Google、Partnership on AI |
-| サイエンス | | | Simons Foundation |
+| テクノロジー | デジタル庁、JST、NTT | カナダ政府（ISED）、CIFAR、Vector Institute、Clearpath Robotics、Sanctuary AI | NIST、NSF、NVIDIA（ブログ・ニュースルーム）、CMU Robotics Institute、MIT（ロボティクス）、欧州委員会（デジタル政策）、英国科学・イノベーション・技術省、Fraunhofer、Linux Foundation、arXiv（Physical AI 関連論文） |
+| 生成AI | Sakana AI、PR TIMES（生成AI関連のみ） | | OpenAI、Google DeepMind、Google、Google Research、Microsoft Research、Apple ML Research、Hugging Face、Ai2、MIT（AI）、英国 AI Security Institute、Partnership on AI |
+| サイエンス | JAXA、国立天文台、KEK、Kavli IPMU | カナダ政府（宇宙庁・NRC・研究助成機関） | NASA、ESA、EMBL、MIT（研究成果）、Simons Foundation、クレイ数学研究所 |
 | 安全保障 | 防衛省、JPCERT/CC（注意喚起） | カナダ政府（国防・公共安全など） | 米国防総省、CISA |
 | 文化・芸術 | | カナダ政府（カナダ文化遺産省） | 全米芸術基金 |
 | イベント | | ウォータールー地域の市・リージョン（催し） | |
@@ -109,6 +109,16 @@ ollama pull embeddinggemma            # 約 620MB
 - 「生成AIが選ぶ◯◯、1位は…（言及率）」のような、AI 検索向けの広告を兼ねた順位調査は取り込みません。
 
 安全保障・文化・芸術・イベントは、上記の情報源に加えて、政府・自治体・研究機関・団体の発表の見出しと説明文に該当する語（防衛、サイバー攻撃、museum、festival など）があれば分類します。企業の発表はセキュリティ製品やイベントの宣伝と区別できないため、この3分野には分類しません。日本の文化・芸術・イベントは、文化庁などが RSS を配信していないため、まだ件数が少ない状態です。
+
+## 品質チェック（`npm run audit`）
+起動中のアプリの API を読み、利用者の要望を満たしているかを数値で確かめ、問題を重大な順に並べます（`--samples` でマイニュース上位20件も表示）。改善はこのチェックを実行 → 最も重大な問題を直す → 再実行、の繰り返しで進めています。
+- **一次情報**: 報道機関のドメインや、政府・企業・研究機関・団体以外の種類が情報源に含まれていないか
+- **情報源の健全性**: 取得エラー、30日間0件（更新が少ないだけか、取り込みの不具合かを区別）、最新記事が古い情報源
+- **量**: 選んだ地域・重点分野ごとの直近1週間の件数、関心トピックごとの「強い一致」の件数
+- **ブリーフィング**: 5件そろうか、プレスリリース配信サービスに偏っていないか、発信元の重複、説明文の有無
+- **要約**: マイニュース上位の記事に説明文・要約があるか
+
+ランキングでは、政府・研究機関・団体の発表を、配信サービス経由の企業発表（宣伝や調査リリースが多い）より上位にし、ブリーフィングに載る配信サービスの発表は1件までにしています。政府の祝日の挨拶、記者会見・発表の予告（実際の発表は別に配信される）は取り込みません。
 
 ## 設計方針
 - 一覧の説明文（100文字以内）は RSS の説明文をそのまま短縮したもの。要約は発信元の本文のみを根拠に作成し、抜粋か AI による要約かを明示する

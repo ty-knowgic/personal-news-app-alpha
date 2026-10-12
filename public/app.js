@@ -284,7 +284,7 @@ function showBriefing() {
 
 function renderBriefing(briefing) {
   if (!briefing?.stories?.length) return '';
-  const period = briefing.windowHours <= 24 ? '過去24時間' : `過去${briefing.windowHours}時間`;
+  const period = briefing.windowHours <= 24 ? '過去24時間' : briefing.windowHours <= 72 ? `過去${briefing.windowHours}時間` : `過去${Math.round(briefing.windowHours / 24)}日間`;
   const title = briefing.windowHours <= 24 ? '今日のブリーフィング' : '最近のブリーフィング';
   return `
     <section class="briefing" aria-label="${title}">
@@ -900,7 +900,7 @@ function renderOnboarding() {
       <h1 class="onb-title">${isRegions ? 'どの国・地域の情報を受け取りますか？' : 'どの分野を柱にしますか？'}</h1>
       <p class="onb-lead">${isRegions
         ? '政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。'
-        : '選んだ分野がタブになり、ほかの分野の発表は表示しません。'}複数選べます。</p>
+        : '選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。'}複数選べます。</p>
       <button class="text-button onb-all" type="button" data-action="select-all">${selected.length === all.length ? 'すべて解除' : 'すべて選択'}</button>
       ${renderChoiceGrid(isRegions ? 'regions' : 'categories', selected)}
       <div class="onb-actions">
@@ -1071,6 +1071,8 @@ function renderSourceRow(source) {
   const enabled = isSourceEnabled(source);
   const outOfRegion = isOutOfRegion(source);
   const details = [source.label !== source.sourceName ? source.label : '', source.subgroup, source.categories.join('・'), outOfRegion ? '選んだ地域の対象外' : `30日で${source.count}件`].filter(Boolean);
+  // 直近の取得に失敗した情報源（発信元のサイトの変更や、アクセスの制限など）
+  const failing = !outOfRegion && source.health && !source.health.ok;
   const url = safeUrl(source.sourceUrl);
   return `
     <li class="source-row${enabled ? '' : ' is-off'}">
@@ -1082,6 +1084,7 @@ function renderSourceRow(source) {
       <div class="source-meta">
         <span class="source-name">${escapeHtml(source.sourceName)}</span>
         <span class="source-desc">${details.map(escapeHtml).join(' · ')}</span>
+        ${failing ? '<span class="source-error">取得できていません（発信元のサイトの変更またはアクセス制限）</span>' : ''}
       </div>
       ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(source.sourceName)}のサイトを開く">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
@@ -1125,7 +1128,7 @@ function renderSourcesPane() {
 
 function renderScopePane() {
   return `
-    <p class="settings-lead">受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになり、地域と分野の外にある発表は、すべてのタブとブリーフィングに表示しません。</p>
+    <p class="settings-lead">受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになります。選んだ地域の外の情報源は取り込みません。マイニュースとブリーフィングは関心トピックで選ぶため、分野に関係なく一致する発表を表示します。</p>
     <h2 class="settings-subtitle">国・地域</h2>
     ${renderChoiceGrid('regions', profileDraft.regions)}
     <h2 class="settings-subtitle">分野</h2>

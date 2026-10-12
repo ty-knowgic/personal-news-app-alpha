@@ -50,6 +50,18 @@ async function embedAllInBackground() {
   }
 }
 
+// プレスリリース配信サービス（誰でも有料で配信できる）
+const PR_WIRES = new Set(['PR TIMES', '@Press', 'PR Newswire', 'Cision Canada']);
+
+/**
+ * 発信元による重み: 政府・研究機関・団体の発表と、企業が自社サイトで公開した発表を、
+ * 配信サービス経由の企業発表（宣伝や調査リリースが多い）より上位にする
+ */
+function sourceWeight(item: NewsItem): number {
+  if (PR_WIRES.has(item.sourceName)) return 0.6;
+  return item.sourceType === 'corporate' ? 0.9 : 1;
+}
+
 /**
  * 表示順の記事を話題ごとにまとめる。マイニュースでは、複数の発信元が伝えている話題を少し上位にする
  * （官公庁の発表と報道の両方がある、など。同じ発信元の続報は数えない）
@@ -60,7 +72,7 @@ async function groupForDisplay<T extends NewsItem & { score?: number }>(items: T
   if (!byScore) return grouped;
   const coverage = (item: (typeof grouped)[number]) => new Set([item.sourceName, ...item.related.map(related => related.sourceName)]).size;
   return grouped
-    .map(item => ({ item, score: (item.score ?? 0) * (1 + 0.25 * Math.min(2, coverage(item) - 1)) }))
+    .map(item => ({ item, score: (item.score ?? 0) * sourceWeight(item) * (1 + 0.25 * Math.min(2, coverage(item) - 1)) }))
     .sort((a, b) => b.score - a.score)
     .map(({ item }) => item);
 }
@@ -87,14 +99,18 @@ function sourceInScope(source: { id: string; subgroup: string }, profile: Profil
   return !profile.excludedSources.includes(source.id) && (!profile.regions.length || profile.regions.includes(source.subgroup));
 }
 
-/** 利用者の選んだ地域・分野と、オフにした情報源による絞り込み条件 */
-function scopeOf(profile: Profile) {
-  return { excludedSources: new Set(profile.excludedSources), regions: profile.regions, categories: profile.categories };
+/**
+ * 利用者の選んだ地域・分野と、オフにした情報源による絞り込み条件。
+ * マイニュースとブリーフィングは関心トピックで選ぶため、分野では絞らない
+ * （例: 「社会」を選んでいなくても、関心トピック「ウォータールー周辺」に一致する市の発表は表示する）
+ */
+function scopeOf(profile: Profile, forYou = false) {
+  return { excludedSources: new Set(profile.excludedSources), regions: profile.regions, categories: forYou ? [] : profile.categories };
 }
 
-/** 利用者の対象範囲（地域・分野・情報源）に含まれる、蓄積中の全記事 */
-async function visibleNews(profile: Profile): Promise<NewsItem[]> {
-  return (await getNews(scopeOf(profile))).map(item => withPrimaryCategory(item, profile.categories));
+/** 利用者の対象範囲（地域・情報源、マイニュース以外では分野も）に含まれる、蓄積中の全記事 */
+async function visibleNews(profile: Profile, forYou = false): Promise<NewsItem[]> {
+  return (await getNews(scopeOf(profile, forYou))).map(item => withPrimaryCategory(item, profile.categories));
 }
 
 // 情報源の一覧（設定画面用）。直近30日の取り込み件数と、この利用者が使っているかを添える
@@ -171,7 +187,7 @@ app.get('/api/news', async (req, res) => {
       subgroup: typeof subgroup === 'string' ? subgroup : undefined,
       sourceType: typeof sourceType === 'string' ? sourceType : undefined,
       keyword: typeof keyword === 'string' ? keyword : undefined,
-      ...scopeOf(profile)
+      ...scopeOf(profile, forYou === '1')
     });
 
     // マイニュースは関心プロフィールに一致する記事を関連度順に、それ以外は新しい順に返す。
@@ -217,7 +233,7 @@ app.get('/api/briefing', async (_req, res) => {
   try {
     const profile = await loadProfile();
     const semantic = await prepareSemanticScorer(semanticQueries(profile));
-    const items = await withStoredSummaries(await visibleNews(profile));
+    const items = await withStoredSummaries(await visibleNews(profile, true));
     const stories = await groupForDisplay(rankForYou(items, profile, semantic), true);
     const boostOnly = new Set(profile.topics.filter(topic => topic.boostOnly).map(topic => topic.id));
     const MAX_PER_TOPIC = 2;
@@ -232,6 +248,8 @@ app.get('/api/briefing', async (_req, res) => {
         if (!story.matches.some(match => !boostOnly.has(match.id) && match.strength >= 0.75)) continue;
         const topic = story.matches.find(match => !boostOnly.has(match.id))?.id ?? '';
         if ((perTopic.get(topic) ?? 0) >= MAX_PER_TOPIC) continue;
+        // プレスリリース配信サービスの発表は1件まで（発信元の多様さを保つ）
+        if (PR_WIRES.has(story.sourceName) && picked.some(other => PR_WIRES.has(other.sourceName))) continue;
         perTopic.set(topic, (perTopic.get(topic) ?? 0) + 1);
         picked.push(story);
         if (picked.length >= 5) break;
@@ -241,7 +259,8 @@ app.get('/api/briefing', async (_req, res) => {
     let windowHours = 24;
     let recent = within(windowHours);
     let picked = pick(recent);
-    for (const hours of [48, 72]) {
+    // 連休明けなどは1週間まで広げる
+    for (const hours of [48, 72, 120, 168]) {
       if (picked.length >= 5) break;
       windowHours = hours;
       recent = within(hours);
@@ -294,7 +313,7 @@ app.get('/api/news/:id', async (req, res) => {
 
     const summaries = await getStoredSummaries();
     const allItems = await loadNews();
-    const visible = await visibleNews(await loadProfile());
+    const visible = await visibleNews(await loadProfile(), true);
     const related = (await loadItemVectors()) ? findRelated(item, visible, buildStoryIndex(allItems)) : [];
     res.json({
       item,

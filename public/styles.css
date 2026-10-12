@@ -1557,6 +1557,12 @@ body.is-onboarding .appbar { display: none; }
   overflow-wrap: anywhere;
 }
 
+.source-error {
+  color: #c2410c;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .source-link {
   flex: 0 0 auto;
   color: var(--muted);

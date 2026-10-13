@@ -1321,6 +1321,35 @@ settingsButton.addEventListener('click', () => {
   location.hash = '#/settings';
 });
 
+// 画面の左端から右へスワイプすると前の画面に戻る（ホーム画面に追加したアプリでは標準の戻る操作が効かないため）
+{
+  const EDGE = 28;
+  const DISTANCE = 70;
+  let swipe = null;
+  const content = () => document.querySelector('main') ?? document.body;
+  document.addEventListener('touchstart', (event) => {
+    const touch = event.touches[0];
+    swipe = event.touches.length === 1 && touch.clientX <= EDGE && !backButton.hidden
+      ? { x: touch.clientX, y: touch.clientY }
+      : null;
+  }, { passive: true });
+  document.addEventListener('touchmove', (event) => {
+    if (!swipe) return;
+    const dx = event.touches[0].clientX - swipe.x;
+    const dy = Math.abs(event.touches[0].clientY - swipe.y);
+    if (dy > dx) { swipe = null; content().style.transform = ''; return; }
+    content().style.transform = `translateX(${Math.max(0, Math.min(dx, 120)) / 3}px)`;
+  }, { passive: true });
+  document.addEventListener('touchend', (event) => {
+    if (!swipe) return;
+    const dx = event.changedTouches[0].clientX - swipe.x;
+    swipe = null;
+    content().style.transform = '';
+    if (dx >= DISTANCE) backButton.click();
+  }, { passive: true });
+  document.addEventListener('touchcancel', () => { swipe = null; content().style.transform = ''; }, { passive: true });
+}
+
 // ---------- ルーティング ----------
 
 function route() {

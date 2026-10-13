@@ -233,6 +233,22 @@ function semanticStrength(similarity: number, threshold: number): number {
   return Math.min(1, 0.3 + (similarity - threshold) * 8);
 }
 
+/**
+ * 特定の分野に絞ったフィードの記事は、見出しに語が無くても（ロボット学会の開催報告など）そのトピックに一致とする。
+ * 保存済みのプロフィールを書き換えずに使えるよう、フィードの URL で対応づける。内容が離れた記事は発信元と同じ基準で弱い一致にする
+ */
+const DEDICATED_FEEDS: Record<string, string[]> = {
+  'https://www.openrobotics.org/blog?format=rss': ['physical-ai'],
+  'https://www.ri.cmu.edu/feed/': ['physical-ai'],
+  'https://news.mit.edu/topic/mitrobotics-rss.xml': ['physical-ai'],
+  'https://www.clearpathrobotics.com/feed/': ['physical-ai'],
+  'https://sanctuary.ai/feed/': ['physical-ai'],
+  'https://www.ntia.gov/rss.xml': ['us-eu-tech-policy'],
+  'https://digital-strategy.ec.europa.eu/en/rss.xml': ['us-eu-tech-policy'],
+  'https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology.atom': ['us-eu-tech-policy'],
+  'https://www.gov.uk/government/organisations/ai-security-institute.atom': ['us-eu-tech-policy']
+};
+
 export function matchTopics(
   item: NewsItem & { ai?: { summary?: string; headlineJa?: string } },
   profile: Profile,
@@ -246,7 +262,7 @@ export function matchTopics(
     if (!topic.enabled) continue;
     if (topic.regions.length && !topic.regions.includes(item.subgroup)) continue;
     if (topic.sourceTypes.length && !topic.sourceTypes.includes(item.sourceType)) continue;
-    if (topic.sources.includes(item.sourceName)) {
+    if (topic.sources.includes(item.sourceName) || DEDICATED_FEEDS[item.feedUrl]?.includes(topic.id)) {
       // 発信元で一致としても、内容がトピックと大きく離れている記事（例: 数学の財団による植物学の奨学金）は弱い一致にする
       const similarity = semantic?.similarity(item.id, topic.id);
       // 発信元は分野が広い場合がある（Simons Foundation は数学以外の科学も扱う）ため、キーワードより厳しく判定する

@@ -100,6 +100,8 @@ export const officialFeeds: FeedSource[] = [
     ]
   },
   { sourceType: 'official', category: '政治', subgroup: 'カナダ', sourceName: 'オンタリオ州政府', sourceUrl: 'https://news.ontario.ca/', feedUrl: 'https://news.ontario.ca/newsroom/en/rss/allnews.rss', label: 'Ontario Newsroom', maxItems: 15 },
+  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: 'ジェトロ', sourceUrl: 'https://www.jetro.go.jp/', feedUrl: 'https://www.jetro.go.jp/rss/news.xml', label: 'ジェトロ お知らせ・記者発表', maxItems: 10, excludeRoutine: true },
+  { sourceType: 'official', category: '政治', subgroup: 'カナダ', sourceName: 'カナダ首相府', sourceUrl: 'https://www.pm.gc.ca/en/news', feedUrl: 'https://pm.gc.ca/en/news.rss', label: 'Prime Minister of Canada News', maxItems: 10 },
   { sourceType: 'official', category: '経済', subgroup: 'カナダ', sourceName: 'カナダ銀行', sourceUrl: 'https://www.bankofcanada.ca/', feedUrl: 'https://www.bankofcanada.ca/content_type/press-releases/feed/', label: 'Bank of Canada Press Releases' },
   { sourceType: 'official', category: '経済', subgroup: 'カナダ', sourceName: 'カナダ統計局', sourceUrl: 'https://www150.statcan.gc.ca/', feedUrl: 'https://www150.statcan.gc.ca/n1/rss/dai-quo/0-eng.atom', label: 'Statistics Canada The Daily', maxItems: 8 },
   { sourceType: 'research', category: 'サイエンス', subgroup: 'カナダ', sourceName: 'CIFAR', sourceUrl: 'https://cifar.ca/', feedUrl: 'https://cifar.ca/feed/', label: 'CIFAR（カナダ先端研究機構）' },

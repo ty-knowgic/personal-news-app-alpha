@@ -46,8 +46,11 @@ jobs:
       - name: Start the embedding model
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
-          for i in $(seq 1 30); do curl -s localhost:11434/api/tags > /dev/null && break; sleep 2; done
-          ollama pull embeddinggemma
+          # systemd が使えない実行環境があるため、サーバーを自分で起動して応答を待つ
+          curl -s localhost:11434/api/tags > /dev/null || (nohup ollama serve > ollama.log 2>&1 &)
+          for i in $(seq 1 60); do curl -s localhost:11434/api/tags > /dev/null && break; sleep 2; done
+          curl -s localhost:11434/api/tags > /dev/null || { cat ollama.log; exit 1; }
+          for i in 1 2 3; do ollama pull embeddinggemma && break; sleep 10; done
 
       - name: Collect, summarize and embed
         run: npm run export

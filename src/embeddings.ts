@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createScorer, dot, itemVectors, itemSimilarity } from './vectors.js';
+import type { SemanticScorer } from './vectors.js';
+
+export { itemSimilarity };
+export type { SemanticScorer };
 
 /**
  * 意味による関心一致のための文の埋め込み（ベクトル化）。
@@ -62,7 +67,7 @@ interface StoredVector {
 }
 
 let store: Map<string, StoredVector> | null = null;
-const decoded = new Map<string, Float32Array>();
+const decoded = itemVectors;
 const queryVectors = new Map<string, Float32Array>();
 let unavailableUntil = 0;
 let lastError = '';
@@ -85,12 +90,6 @@ function decode(base64: string): Float32Array {
 function normalize(values: number[]): Float32Array {
   const norm = Math.hypot(...values) || 1;
   return Float32Array.from(values, value => value / norm);
-}
-
-function dot(a: Float32Array, b: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < a.length; i += 1) sum += a[i] * b[i];
-  return sum;
 }
 
 async function loadStore(): Promise<Map<string, StoredVector>> {
@@ -194,14 +193,9 @@ export function embedItemsInBackground(items: EmbeddableItem[]): Promise<void> {
 /** 保存済みのベクトルを読み込む（記事のまとめなど、問い合わせなしで類似度を使う処理の前に呼ぶ） */
 export async function loadItemVectors(): Promise<boolean> {
   if (!ENABLED) return false;
-  return (await loadStore()).size > 0;
-}
-
-/** 2つの記事の意味の近さ（どちらかが未処理なら undefined） */
-export function itemSimilarity(a: string, b: string): number | undefined {
-  const va = itemVector(a);
-  const vb = itemVector(b);
-  return va && vb && va.length === vb.length ? dot(va, vb) : undefined;
+  const vectors = await loadStore();
+  for (const id of vectors.keys()) itemVector(id);
+  return vectors.size > 0;
 }
 
 function itemVector(id: string): Float32Array | undefined {
@@ -230,12 +224,6 @@ async function queryVector(text: string): Promise<Float32Array | undefined> {
   }
 }
 
-export interface SemanticScorer {
-  /** 記事と関心トピックの意味の近さ（コサイン類似度）。どちらかのベクトルがない場合は undefined */
-  similarity(itemId: string, topicId: string): number | undefined;
-  threshold: number;
-}
-
 /** 関心トピックの説明文から、記事との類似度を返す関数を用意する。使えない場合は null（キーワードだけで判定） */
 export async function prepareSemanticScorer(topics: { id: string; description: string }[]): Promise<SemanticScorer | null> {
   if (!ENABLED) return null;
@@ -246,15 +234,7 @@ export async function prepareSemanticScorer(topics: { id: string; description: s
     const vector = await queryVector(topic.description.trim());
     if (vector) vectors.set(topic.id, vector);
   }
-  if (!vectors.size) return null;
-  return {
-    threshold: PROFILE.threshold,
-    similarity(itemId, topicId) {
-      const topic = vectors.get(topicId);
-      const item = itemVector(itemId);
-      return topic && item && topic.length === item.length ? dot(topic, item) : undefined;
-    }
-  };
+  return createScorer(vectors, PROFILE.threshold);
 }
 
 export function getEmbeddingStatus() {

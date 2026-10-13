@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Parser from 'rss-parser';
 import { fetchArticleContent, isGenericImage } from './articleContent.js';
+import { filterNews } from './newsFilters.js';
+import { cleanFeedText, decodeEntities } from './text.js';
 import { CATEGORIES, SOURCE_TYPES, SUBGROUPS } from './types.js';
 import type { CategoryKey, FeedSource, NewsFilters, NewsItem } from './types.js';
 
@@ -284,27 +286,6 @@ function isRoutine(title: string): boolean {
 const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率|LLMO|AIO対策|AI検索対策|交流会/i;
 
 /** PR TIMES などの説明文に含まれる「[画像: URL]」や、先頭の「[会社名]」を取り除く */
-const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-
-/** 二重にエスケープされたフィード（「&amp;amp;」など）の文字参照を戻す */
-function decodeEntities(value: string): string {
-  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
-    if (code[0] === '#') {
-      const point = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
-      return Number.isFinite(point) && point > 0 && point < 0x110000 ? String.fromCodePoint(point) : match;
-    }
-    return NAMED_ENTITIES[code.toLowerCase()] ?? match;
-  });
-}
-
-export function cleanFeedText(value: string): string {
-  return decodeEntities(value)
-    .replace(/\[(画像|動画)[^\]]*(\]|$)/g, ' ')
-    .replace(/^\s*\[[^\]]{1,60}\]\s*/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function trimSummary(value: string): string {
   // 一部のフィード（欧州委員会など）は改行を「\n」という文字列のまま配信するため、空白に置き換える
   const normalized = cleanFeedText(value.replace(/<[^>]*>/g, ' ').replace(/\\[nrt]/g, ' ').replace(/\s+/g, ' ').trim());
@@ -726,40 +707,8 @@ export async function loadNews(): Promise<NewsItem[]> {
   return inFlight;
 }
 
-export function listCategoryGroups() {
-  return CATEGORIES.map(category => ({ category, subgroups: [...SUBGROUPS] }));
-}
-
-export function listFilterOptions() {
-  return { categories: [...CATEGORIES], regions: [...SUBGROUPS], sourceTypes: [...SOURCE_TYPES] };
-}
-
 export async function getNews(filters: NewsFilters = {}) {
-  const allItems = await loadNews();
-
-  return allItems.filter((item) => {
-    const byCategory = filters.category ? item.categories.includes(filters.category as CategoryKey) : true;
-    const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
-    const bySourceType = filters.sourceType ? item.sourceType === filters.sourceType : true;
-    if (filters.excludedSources?.size && filters.excludedSources.has(sourceId(item.feedUrl))) return false;
-    if (filters.regions?.length && !filters.regions.includes(item.subgroup)) return false;
-    if (filters.categories?.length && !item.categories.some(category => filters.categories!.includes(category))) return false;
-    const keyword = filters.keyword?.trim().toLowerCase();
-    const byKeyword = keyword
-      ? [item.title, item.summary, item.sourceName, ...item.keywords, ...item.hashtags].some(value =>
-          value.toLowerCase().includes(keyword)
-        )
-      : true;
-
-    return byCategory && bySubgroup && bySourceType && byKeyword;
-  });
-}
-
-/** 主カテゴリが利用者の選んだ分野にない記事は、選んだ分野のうち最初に該当するものを主カテゴリとして表示する */
-export function withPrimaryCategory<T extends NewsItem>(item: T, categories: string[]): T {
-  if (!categories.length || categories.includes(item.category)) return item;
-  const primary = item.categories.find(category => categories.includes(category));
-  return primary ? { ...item, category: primary } : item;
+  return filterNews(await loadNews(), filters, sourceId);
 }
 
 export async function getNewsById(id: string): Promise<NewsItem | undefined> {

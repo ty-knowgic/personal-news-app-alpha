@@ -1,4 +1,4 @@
-import { itemSimilarity } from './embeddings.js';
+import { itemSimilarity } from './vectors.js';
 import type { NewsItem } from './types.js';
 
 /**

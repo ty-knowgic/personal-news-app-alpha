@@ -1,8 +1,5 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import type { SemanticScorer } from './embeddings.js';
+import type { SemanticScorer } from './vectors.js';
 import type { NewsItem } from './types.js';
 
 /**
@@ -12,8 +9,6 @@ import type { NewsItem } from './types.js';
  * 将来の複数ユーザー化に備え、プロフィールは ID ごとに保存する。
  */
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROFILE_DIR = path.join(__dirname, '../data/profiles');
 export const DEFAULT_PROFILE_ID = 'default';
 
 const TopicSchema = z.object({
@@ -57,7 +52,7 @@ export type Profile = z.infer<typeof ProfileSchema>;
 export type Topic = z.infer<typeof TopicSchema>;
 
 /** 初期プロフィール（ウォータールー在住、生成AI・Physical AI・日加・米欧・数学に関心のある事業開発コンサルタント） */
-const DEFAULT_PROFILE: Profile = {
+export const DEFAULT_PROFILE: Profile = {
   name: 'Waterloo, ON',
   onboarded: false,
   regions: [],
@@ -111,10 +106,8 @@ const DEFAULT_PROFILE: Profile = {
   ]
 };
 
-const cache = new Map<string, Profile>();
-
 /** 説明文の導入前に保存したプロフィールには、初期設定の同じトピックの説明文を補う */
-function withDefaultDescriptions(profile: Profile): Profile {
+export function withDefaultDescriptions(profile: Profile): Profile {
   const defaults = new Map(DEFAULT_PROFILE.topics.map(topic => [topic.id, topic.description]));
   return { ...profile, topics: profile.topics.map(topic => (topic.description === undefined ? { ...topic, description: defaults.get(topic.id) } : topic)) };
 }
@@ -124,44 +117,6 @@ export function semanticQueries(profile: Profile): { id: string; description: st
   return profile.topics
     .filter(topic => topic.enabled && topic.description?.trim())
     .map(topic => ({ id: topic.id, description: topic.description!.trim() }));
-}
-
-function profilePath(id: string): string {
-  return path.join(PROFILE_DIR, `${id.replace(/[^a-z0-9-]/gi, '')}.json`);
-}
-
-export async function loadProfile(id = DEFAULT_PROFILE_ID): Promise<Profile> {
-  const cached = cache.get(id);
-  if (cached) return cached;
-  let profile = DEFAULT_PROFILE;
-  try {
-    profile = withDefaultDescriptions(ProfileSchema.parse(JSON.parse(await readFile(profilePath(id), 'utf8'))));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.warn(`[profile] 読み込みに失敗したため初期設定を使います: ${(error as Error).message}`);
-    }
-  }
-  cache.set(id, profile);
-  return profile;
-}
-
-/** 保存済みのプロフィールの ID の一覧（初期設定のままなら default だけ） */
-export async function listProfileIds(): Promise<string[]> {
-  try {
-    const ids = (await readdir(PROFILE_DIR)).filter(name => name.endsWith('.json')).map(name => name.slice(0, -5));
-    return ids.includes(DEFAULT_PROFILE_ID) ? ids : [DEFAULT_PROFILE_ID, ...ids];
-  } catch {
-    return [DEFAULT_PROFILE_ID];
-  }
-}
-
-export async function saveProfile(input: unknown, id = DEFAULT_PROFILE_ID): Promise<Profile> {
-  const profile = ProfileSchema.parse(input);
-  await mkdir(PROFILE_DIR, { recursive: true });
-  await writeFile(profilePath(id), JSON.stringify(profile, null, 2));
-  cache.set(id, profile);
-  matcherCache.clear();
-  return profile;
 }
 
 export function defaultProfile(): Profile {
@@ -195,6 +150,11 @@ interface CompiledTopic {
 }
 
 const matcherCache = new Map<Topic, CompiledTopic>();
+
+/** プロフィールを保存したあと、キーワードの正規表現を作り直す */
+export function clearMatcherCache(): void {
+  matcherCache.clear();
+}
 
 function compile(topic: Topic): CompiledTopic {
   const cached = matcherCache.get(topic);

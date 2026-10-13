@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createScorer, dot, itemVectors, itemSimilarity } from './vectors.js';
+import { createScorer, dot, itemVectors, itemSimilarity, textKey } from './vectors.js';
 import type { SemanticScorer } from './vectors.js';
 
 export { itemSimilarity };
@@ -235,6 +235,27 @@ export async function prepareSemanticScorer(topics: { id: string; description: s
     if (vector) vectors.set(topic.id, vector);
   }
   return createScorer(vectors, PROFILE.threshold);
+}
+
+/** 保存済みの記事ベクトル（Base64）を、指定した記事の分だけ取り出す（静的サイトへの書き出し用） */
+export async function exportItemVectors(ids: string[]): Promise<Record<string, string>> {
+  const vectors = await loadStore();
+  const out: Record<string, string> = {};
+  for (const id of ids) {
+    const stored = vectors.get(id);
+    if (stored) out[id] = stored.v;
+  }
+  return out;
+}
+
+/** トピックの説明文のベクトル（Base64）を textKey ごとに返す（静的サイトでは、ここで事前計算したものだけを意味での一致に使う） */
+export async function exportQueryVectors(texts: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const text of texts) {
+    const vector = await queryVector(text.trim());
+    if (vector) out[textKey(text.trim())] = encode(vector);
+  }
+  return out;
 }
 
 export function getEmbeddingStatus() {

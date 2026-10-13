@@ -1,0 +1,75 @@
+# 数時間おきに一次情報を集めて、静的サイト（GitHub Pages）を更新する。サーバーは不要。
+name: Publish Sivry
+
+on:
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
+      - uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      # 意味による一致のための、小さなオープンソースの埋め込みモデル（外部の AI サービスは使わない）
+      - name: Start the embedding model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          for i in $(seq 1 30); do curl -s localhost:11434/api/tags > /dev/null && break; sleep 2; done
+          ollama pull embeddinggemma
+
+      - name: Collect, summarize and embed
+        run: npm run export
+        env:
+          REQUIRE_SEMANTIC: '1'
+
+      - run: npm run build:site
+
+      - uses: actions/cache/save@v4
+        with:
+          path: data
+          key: state-${{ github.run_id }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      # 公開リポジトリでは、60日間まったく動きがないと定期実行が止められるため、毎回有効化し直して延長する
+      - name: Keep the schedule alive
+        run: gh workflow enable publish.yml
+        env:
+          GH_TOKEN: ${{ github.token }}

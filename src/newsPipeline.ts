@@ -626,7 +626,7 @@ async function collectNews(): Promise<NewsItem[]> {
   }
 
   await saveArchive(kept);
-  void enrichImages(kept);
+  imageEnrichment = enrichImages(kept);
   return kept;
 }
 
@@ -651,6 +651,12 @@ function dropSharedImages(items: NewsItem[]): void {
 }
 
 let enriching = false;
+let imageEnrichment: Promise<void> = Promise.resolve();
+
+/** 裏で進めている記事画像の取得が終わるまで待つ（定期ジョブの書き出し前に使う） */
+export function waitForImageEnrichment(): Promise<void> {
+  return imageEnrichment;
+}
 
 // 多くの公式フィードは画像を含まないため、記事ページの og:image を裏で取得して一覧のサムネイルに使う。
 // 一覧の応答は待たせず、取得できた画像は次回以降の一覧に反映される

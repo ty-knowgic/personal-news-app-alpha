@@ -7,7 +7,9 @@
     "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/server.js",
-    "audit": "node scripts/audit.mjs"
+    "audit": "node scripts/audit.mjs",
+    "build:site": "node scripts/build-static.mjs",
+    "export": "tsx --env-file-if-exists=.env scripts/export-data.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",
@@ -22,6 +24,7 @@
     "@types/express": "^5.0.0",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^22.10.2",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2"
   }

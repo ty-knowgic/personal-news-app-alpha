@@ -743,7 +743,7 @@ async function showDetail(id) {
 
   if (known) {
     renderDetail();
-    document.title = `${displayTitle(known)} | Personal News`;
+    document.title = `${displayTitle(known)} | Sivry`;
   } else {
     detailView.innerHTML = '<div class="empty-state">読み込み中…</div>';
   }
@@ -756,7 +756,7 @@ async function showDetail(id) {
 
     itemsById.set(data.item.id, { ...known, ...data.item });
     Object.assign(currentDetail, { item: data.item, content: data.content, summary: data.summary, related: data.related ?? [] });
-    document.title = `${data.summary?.headlineJa || data.item.title} | Personal News`;
+    document.title = `${data.summary?.headlineJa || data.item.title} | Sivry`;
 
     if (data.summary) {
       currentDetail.summaryState = 'done';
@@ -791,7 +791,7 @@ function showList() {
   listView.hidden = false;
   backButton.hidden = true;
   shareButton.hidden = true;
-  document.title = 'Personal News';
+  document.title = 'Sivry';
 
   // 詳細で作成された AI 要約を一覧にも反映する
   if (state.items.length) {
@@ -918,7 +918,7 @@ async function showOnboarding() {
   detailView.hidden = true;
   settingsView.hidden = true;
   onboardingView.hidden = false;
-  document.title = 'ようこそ | Personal News';
+  document.title = 'ようこそ | Sivry';
   window.scrollTo(0, 0);
   onboardingView.innerHTML = '<div class="empty-state">読み込み中…</div>';
   try {
@@ -1183,7 +1183,7 @@ async function showSettings() {
   settingsView.hidden = false;
   backButton.hidden = false;
   shareButton.hidden = true;
-  document.title = '設定 | Personal News';
+  document.title = '設定 | Sivry';
   window.scrollTo(0, 0);
   settingsView.innerHTML = '<div class="empty-state">読み込み中…</div>';
   try {

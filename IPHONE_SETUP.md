@@ -1,6 +1,6 @@
-# iPhone でパーソナルニュースアプリ α版を使う
+# iPhone で Sivry（α版）を使う
 
-このガイドでは、iPhone から Personal News App α版 にアクセスして利用する方法を説明します。
+このガイドでは、iPhone から Sivry α版 にアクセスして利用する方法を説明します。
 
 ---
 

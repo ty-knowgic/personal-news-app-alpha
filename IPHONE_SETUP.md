@@ -1,5 +1,18 @@
 # iPhone で Sivry（α版）を使う
 
+## おすすめ: 公開サイト（GitHub Pages）で使う（外出先でも・無料・保守不要）
+
+1. iPhone の Safari で https://ty-knowgic.github.io/personal-news-app-alpha/ を開く
+2. 共有ボタン →「ホーム画面に追加」
+3. 以後はアプリのように起動できます。Mac の電源やネットワーク設定は不要です。
+
+- 記事は GitHub Actions が3時間ごとに集めて更新します（`.github/workflows/publish.yml`）。
+- 関心プロフィールは iPhone のブラウザ内（localStorage）に保存され、端末間では同期されません。
+- 自分で追加したトピックはキーワードのみで判定します（初期トピックは意味による判定も有効）。
+- 記事詳細の「冒頭の抜粋」は表示されません（発信元へのリンクは使えます）。
+
+以下は、Mac 上のサーバーに同じ Wi-Fi から接続する従来の方法です。
+
 このガイドでは、iPhone から Sivry α版 にアクセスして利用する方法を説明します。
 
 ---

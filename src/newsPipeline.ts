@@ -45,7 +45,6 @@ export const officialFeeds: FeedSource[] = [
   // 経済（公的機関）: 発表量が多く定型的なお知らせも多いため、件数を抑えて定型告知を除外する
   { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '日本銀行', sourceUrl: 'https://www.boj.or.jp/', feedUrl: 'https://www.boj.or.jp/rss/whatsnew.xml', label: '日本銀行 新着情報', maxItems: 6, excludeRoutine: true },
   { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '財務省', sourceUrl: 'https://www.mof.go.jp/', feedUrl: 'https://www.mof.go.jp/news.rss', label: '財務省 新着情報', maxItems: 6, excludeRoutine: true },
-  { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '経済産業省', sourceUrl: 'https://www.meti.go.jp/', feedUrl: 'https://www.meti.go.jp/ml_index_release_atom.xml', label: '経済産業省 ニュースリリース', maxItems: 8, excludeRoutine: true },
   { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: '金融庁', sourceUrl: 'https://www.fsa.go.jp/', feedUrl: 'https://www.fsa.go.jp/fsaNewsListAll_rss2.xml', label: '金融庁 新着情報', maxItems: 6, excludeRoutine: true },
   { sourceType: 'official', category: '経済', subgroup: '日本', sourceName: 'JPX', sourceUrl: 'https://www.jpx.co.jp/', feedUrl: 'https://www.jpx.co.jp/rss/jpx-news.xml', label: '日本取引所グループ ニュース' },
   { sourceType: 'official', category: '経済', subgroup: '米国', sourceName: 'FRB', sourceUrl: 'https://www.federalreserve.gov/', feedUrl: 'https://www.federalreserve.gov/feeds/press_all.xml', label: 'Federal Reserve Press Releases', maxItems: 6 },
@@ -103,12 +102,20 @@ export const officialFeeds: FeedSource[] = [
   { sourceType: 'official', category: '政治', subgroup: 'カナダ', sourceName: 'オンタリオ州政府', sourceUrl: 'https://news.ontario.ca/', feedUrl: 'https://news.ontario.ca/newsroom/en/rss/allnews.rss', label: 'Ontario Newsroom', maxItems: 15 },
   { sourceType: 'official', category: '経済', subgroup: 'カナダ', sourceName: 'カナダ銀行', sourceUrl: 'https://www.bankofcanada.ca/', feedUrl: 'https://www.bankofcanada.ca/content_type/press-releases/feed/', label: 'Bank of Canada Press Releases' },
   { sourceType: 'official', category: '経済', subgroup: 'カナダ', sourceName: 'カナダ統計局', sourceUrl: 'https://www150.statcan.gc.ca/', feedUrl: 'https://www150.statcan.gc.ca/n1/rss/dai-quo/0-eng.atom', label: 'Statistics Canada The Daily', maxItems: 8 },
-  { sourceType: 'research', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'CIFAR', sourceUrl: 'https://cifar.ca/', feedUrl: 'https://cifar.ca/feed/', label: 'CIFAR（カナダ先端研究機構）' },
-  { sourceType: 'research', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'Vector Institute', sourceUrl: 'https://vectorinstitute.ai/', feedUrl: 'https://vectorinstitute.ai/feed/', label: 'Vector Institute（AI 研究所）', maxItems: 10 },
+  { sourceType: 'research', category: 'サイエンス', subgroup: 'カナダ', sourceName: 'CIFAR', sourceUrl: 'https://cifar.ca/', feedUrl: 'https://cifar.ca/feed/', label: 'CIFAR（カナダ先端研究機構）' },
+  { sourceType: 'research', category: 'テクノロジー', subgroup: 'カナダ', sourceName: 'トロント大学工学部', sourceUrl: 'https://news.engineering.utoronto.ca/', feedUrl: 'https://news.engineering.utoronto.ca/feed/', label: 'U of T Engineering News', maxItems: 8 },
+  { sourceType: 'research', category: '生成AI', subgroup: 'カナダ', sourceName: 'Vector Institute', sourceUrl: 'https://vectorinstitute.ai/', feedUrl: 'https://vectorinstitute.ai/feed/', label: 'Vector Institute（AI 研究所）', maxItems: 10 },
   // 欧州・米国のデジタル政策
   { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '英国科学・イノベーション・技術省', sourceUrl: 'https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology', feedUrl: 'https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology.atom', label: 'UK Department for Science, Innovation and Technology', maxItems: 10 },
   { sourceType: 'official', category: '生成AI', subgroup: '欧州', sourceName: '英国 AI Security Institute', sourceUrl: 'https://www.aisi.gov.uk/', feedUrl: 'https://www.gov.uk/government/organisations/ai-security-institute.atom', label: 'UK AI Security Institute' },
   { sourceType: 'official', category: '経済', subgroup: '欧州', sourceName: 'イングランド銀行', sourceUrl: 'https://www.bankofengland.co.uk/news', feedUrl: 'https://www.bankofengland.co.uk/rss/news', label: 'Bank of England News', maxItems: 6 },
+  { sourceType: 'official', category: '政治', subgroup: '欧州', sourceName: '欧州委員会', sourceUrl: 'https://ec.europa.eu/commission/presscorner/', feedUrl: 'https://ec.europa.eu/commission/presscorner/api/rss?language=en', label: 'European Commission Press Corner', maxItems: 10 },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '米国', sourceName: 'NIST', sourceUrl: 'https://www.nist.gov/news-events', feedUrl: 'https://www.nist.gov/news-events/news/rss.xml', label: 'NIST（米国標準技術研究所）ニュース', maxItems: 8 },
+  { sourceType: 'official', category: 'テクノロジー', subgroup: '米国', sourceName: 'NTIA', sourceUrl: 'https://www.ntia.gov/', feedUrl: 'https://www.ntia.gov/rss.xml', label: 'NTIA（米商務省 電気通信情報庁）', maxItems: 6 },
+  { sourceType: 'official', category: 'サイエンス', subgroup: '米国', sourceName: '全米科学財団', sourceUrl: 'https://www.nsf.gov/', feedUrl: 'https://www.nsf.gov/rss/rss_www_news.xml', label: 'NSF（全米科学財団）ニュース', maxItems: 6 },
+  { sourceType: 'official', category: 'サイエンス', subgroup: '日本', sourceName: '文部科学省', sourceUrl: 'https://www.mext.go.jp/', feedUrl: 'https://www.mext.go.jp/b_menu/news/index.rdf', label: '文部科学省 新着情報', maxItems: 6, excludeRoutine: true },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '日本', sourceName: 'JST', sourceUrl: 'https://www.jst.go.jp/', feedUrl: 'https://www.jst.go.jp/rss/press.xml', label: '科学技術振興機構 プレスリリース', maxItems: 8 },
+  { sourceType: 'npo', category: 'テクノロジー', subgroup: '米国', sourceName: 'Open Robotics', sourceUrl: 'https://www.openrobotics.org/', feedUrl: 'https://www.openrobotics.org/blog?format=rss', label: 'Open Robotics（ROS を支える非営利団体）', maxItems: 6 },
   { sourceType: 'official', category: 'テクノロジー', subgroup: '欧州', sourceName: '欧州委員会（デジタル）', sourceUrl: 'https://digital-strategy.ec.europa.eu/', feedUrl: 'https://digital-strategy.ec.europa.eu/en/rss.xml', label: 'Shaping Europe’s digital future' },
   // Physical AI（ロボティクス）
   // 安全保障（防衛・サイバーセキュリティ）

@@ -240,12 +240,15 @@ app.get('/api/briefing', async (_req, res) => {
 
     // 週末など新しい記事が少ない場合は、対象期間を広げる（関心トピックが偏らずに5件選べるまで）
     const within = (hours: number) => stories.filter(story => Date.now() - new Date(story.publishedAt).getTime() <= hours * 3_600_000);
+    const lineOf = (story: (typeof stories)[number]) => firstSentence(('ai' in story && story.ai?.summary) || story.summary);
     const pick = (candidates: typeof stories) => {
       const perTopic = new Map<string, number>();
       const picked: typeof stories = [];
       for (const story of candidates) {
         // 本文で触れているだけ・内容の近さが弱いなど、一致の弱い記事はブリーフィングには載せない
         if (!story.matches.some(match => !boostOnly.has(match.id) && match.strength >= 0.75)) continue;
+        // 見出しだけで内容が分からない記事は載せない
+        if (lineOf(story).length < 20) continue;
         const topic = story.matches.find(match => !boostOnly.has(match.id))?.id ?? '';
         if ((perTopic.get(topic) ?? 0) >= MAX_PER_TOPIC) continue;
         // プレスリリース配信サービスの発表は1件まで（発信元の多様さを保つ）
@@ -282,7 +285,7 @@ app.get('/api/briefing', async (_req, res) => {
       stories: picked.map(story => ({
         id: story.id,
         title: ('ai' in story && story.ai?.headlineJa) || story.title,
-        line: firstSentence(('ai' in story && story.ai?.summary) || story.summary),
+        line: lineOf(story),
         category: story.category,
         subgroup: story.subgroup,
         sourceName: story.sourceName,

@@ -52,11 +52,11 @@ export const officialFeeds: FeedSource[] = [
   { sourceType: 'official', category: '経済', subgroup: '米国', sourceName: 'FRB', sourceUrl: 'https://www.federalreserve.gov/', feedUrl: 'https://www.federalreserve.gov/feeds/press_all.xml', label: 'Federal Reserve Press Releases', maxItems: 6 },
   { sourceType: 'official', category: '経済', subgroup: '欧州', sourceName: 'ECB', sourceUrl: 'https://www.ecb.europa.eu/', feedUrl: 'https://www.ecb.europa.eu/rss/press.html', label: 'ECB Press', maxItems: 6 },
   // 経済（企業の発表）: 提携・買収・決算・事業展開・事故や不祥事など、企業活動に関するプレスリリース
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: 'PR TIMES', sourceUrl: 'https://prtimes.jp/', feedUrl: 'https://prtimes.jp/index.rdf', label: 'PR TIMES（企業の一次発表）' },
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '日本', sourceName: '@Press', sourceUrl: 'https://www.atpress.ne.jp/', feedUrl: 'https://www.atpress.ne.jp/rss/index.rdf', label: '@Press（企業の一次発表）' },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI', 'テクノロジー'], subgroup: '日本', sourceName: 'PR TIMES', sourceUrl: 'https://prtimes.jp/', feedUrl: 'https://prtimes.jp/index.rdf', label: 'PR TIMES（企業の一次発表）' },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI', 'テクノロジー'], subgroup: '日本', sourceName: '@Press', sourceUrl: 'https://www.atpress.ne.jp/', feedUrl: 'https://www.atpress.ne.jp/rss/index.rdf', label: '@Press（企業の一次発表）' },
   { sourceType: 'corporate', category: '経済', subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/earnings-list.rss', label: 'PR Newswire 決算発表', languages: ['en'] },
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/mergers-and-acquisitions-list.rss', label: 'PR Newswire 新着（M&A 専用ではなく全般。経済・投資・生成AIの記事だけ採用）', languages: ['en'] },
-  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/general-business-latest-news/general-business-latest-news-list.rss', label: 'PR Newswire 一般ビジネス', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI', 'テクノロジー'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/financial-services-latest-news/mergers-and-acquisitions-list.rss', label: 'PR Newswire 新着（M&A 専用ではなく全般。経済・投資・生成AIの記事だけ採用）', languages: ['en'] },
+  { sourceType: 'corporate', matchOnly: ['経済', '投資', '生成AI', 'テクノロジー'], subgroup: '米国', sourceName: 'PR Newswire', sourceUrl: 'https://www.prnewswire.com/', feedUrl: 'https://www.prnewswire.com/rss/general-business-latest-news/general-business-latest-news-list.rss', label: 'PR Newswire 一般ビジネス', languages: ['en'] },
   // 投資（政府系の投資、スタートアップの資金調達）
   { sourceType: 'corporate', category: '投資', subgroup: 'カナダ', sourceName: 'Cision Canada', sourceUrl: 'https://www.newswire.ca/', feedUrl: 'https://www.newswire.ca/rss/financial-services-latest-news/venture-capital-list.rss', label: 'Cision Canada Venture Capital（企業の一次発表）', languages: ['en'] },
   { sourceType: 'official', category: '投資', subgroup: '日本', sourceName: 'GPIF', sourceUrl: 'https://www.gpif.go.jp/', feedUrl: 'https://www.gpif.go.jp/rss.xml', label: '年金積立金管理運用独立行政法人' },
@@ -196,7 +196,7 @@ const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgr
   },
   {
     category: '生成AI',
-    pattern: /生成\s?AI|生成ＡＩ|ChatGPT|LLM|大規模言語モデル|基盤モデル|AIエージェント|generative AI|\bGenAI\b|large language model|\bGPT-?\d|\bGemini\b|\bClaude\b|\bAI agents?\b|frontier (AI|model)|foundation models?/i
+    pattern: /生成\s?AI|生成ＡＩ|ChatGPT|LLM|大規模言語モデル|基盤モデル|AIエージェント|generative AI|\bGenAI\b|large language model|\bGPT-?\d|\bGemini\b|\bClaude\b|\bAI agents?\b|frontier (AI|model)|foundation models?|生成系AI|対話型AI|エージェンティック|\b(OpenAI|Anthropic|Mistral AI|DeepSeek|Llama ?\d|Copilot|agentic|small language models?|retrieval-augmented)\b/i
   },
   {
     category: '投資',
@@ -205,7 +205,7 @@ const CATEGORY_RULES: { category: CategoryKey; pattern: RegExp | RegExp[]; subgr
   {
     // ロボティクス・量子・半導体など（Physical AI を含む）
     category: 'テクノロジー',
-    pattern: /ロボット|ヒューマノイド|フィジカルAI|自動運転|量子コンピュータ|半導体|\b(robot(s|ics)?|humanoid|physical AI|embodied AI|autonomous (vehicle|driving)|quantum comput(er|ing)|semiconductor)\b/i
+    pattern: /ロボット|ロボティクス|ヒューマノイド|フィジカルAI|自動運転|ドローン|量子コンピュータ|半導体|AI半導体|データセンター|\b(robot(s|ics)?|humanoid|physical AI|embodied AI|autonomous (vehicle|driving|mobile robots?)|self-driving|drones?|quantum comput(er|ing)|semiconductors?|AI chips?|GPUs?|data cent(er|re)s?)\b/i
   },
   {
     category: 'サイエンス',

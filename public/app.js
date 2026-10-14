@@ -43,6 +43,10 @@ const CATEGORY_INFO = {
   '文化・芸術': '芸術・文化財・文化政策',
   イベント: '催し・展示会・カンファレンス'
 };
+// 発信元の種別の表示名（現在の言語）
+const typeLabel = type => t(SOURCE_TYPE_LABELS[type] ?? type);
+const typeBadge = type => (SOURCE_BADGES[type] ? t(SOURCE_BADGES[type]) : '');
+const listJoin = items => items.join(getLang() === 'ja' ? '、' : ', ');
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
 
@@ -96,7 +100,7 @@ function safeUrl(value) {
 function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString(locale(), { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 function formatRelative(value) {
@@ -104,11 +108,11 @@ function formatRelative(value) {
   const diff = Date.now() - date.getTime();
   if (Number.isNaN(diff)) return '';
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'たった今';
-  if (minutes < 60) return `${minutes}分前`;
+  if (minutes < 1) return t('たった今');
+  if (minutes < 60) return t('{n}分前', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
-  return date.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (hours < 24) return t('{n}時間前', { n: hours });
+  return date.toLocaleString(locale(), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function dayKey(value) {
@@ -121,9 +125,9 @@ function dayLabel(value) {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  const md = date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
-  if (dayKey(date) === dayKey(today)) return { main: '今日', sub: md };
-  if (dayKey(date) === dayKey(yesterday)) return { main: '昨日', sub: md };
+  const md = date.toLocaleDateString(locale(), { month: 'long', day: 'numeric', weekday: 'short' });
+  if (dayKey(date) === dayKey(today)) return { main: t('今日'), sub: md };
+  if (dayKey(date) === dayKey(yesterday)) return { main: t('昨日'), sub: md };
   return { main: md, sub: '' };
 }
 
@@ -183,9 +187,9 @@ function restoreListState() {
 
 function renderTabs(categories) {
   const tabs = [
-    { value: FOR_YOU_TAB, label: 'マイニュース', cat: 'foryou' },
-    { value: ALL_TAB, label: 'すべて', cat: 'all' },
-    ...categories.map(c => ({ value: c, label: c, cat: c }))
+    { value: FOR_YOU_TAB, label: t('マイニュース'), cat: 'foryou' },
+    { value: ALL_TAB, label: t('すべて'), cat: 'all' },
+    ...categories.map(c => ({ value: c, label: t(c), cat: c }))
   ];
   if (!tabs.some(tab => tab.value === state.tab)) state.tab = FOR_YOU_TAB;
 
@@ -215,10 +219,10 @@ function selectTab(value) {
 }
 
 function renderFilterOptions(filters) {
-  subgroupFilter.innerHTML = ['<option value="">すべての地域</option>',
-    ...filters.regions.map(region => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`)].join('');
-  sourceTypeFilter.innerHTML = ['<option value="">すべての発信元</option>',
-    ...filters.sourceTypes.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)}</option>`)].join('');
+  subgroupFilter.innerHTML = [`<option value="">${escapeHtml(t('すべての地域'))}</option>`,
+    ...filters.regions.map(region => `<option value="${escapeHtml(region)}">${escapeHtml(t(region))}</option>`)].join('');
+  sourceTypeFilter.innerHTML = [`<option value="">${escapeHtml(t('すべての発信元'))}</option>`,
+    ...filters.sourceTypes.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(typeLabel(type))}</option>`)].join('');
 }
 
 /** 選んだ分野・地域に合わせて、タブと地域の選択肢を作り直す */
@@ -249,8 +253,8 @@ function cardSummary(item) {
   if (item.ai?.summary) {
     // 抽出型（本文の文をそのまま抜粋）と、生成モデルによる要約を区別して表示する
     const mark = item.ai.method === 'llm'
-      ? `<span class="ai-mark">${ICONS.sparkle.replace('<svg', '<svg width="11" height="11"')}AI要約</span>`
-      : '<span class="ai-mark is-extract">要約</span>';
+      ? `<span class="ai-mark">${ICONS.sparkle.replace('<svg', '<svg width="11" height="11"')}${escapeHtml(t('AI要約'))}</span>`
+      : `<span class="ai-mark is-extract">${escapeHtml(t('要約'))}</span>`;
     return `<p class="card-summary">${mark}${escapeHtml(item.ai.summary)}</p>`;
   }
   return item.summary ? `<p class="card-summary">${escapeHtml(item.summary)}</p>` : '';
@@ -259,11 +263,11 @@ function cardSummary(item) {
 // どの関心トピックに一致したか（「なぜこの記事が表示されているか」）を示す
 function matchChips(item) {
   if (!item.matches?.length) return '';
-  return `<span class="match-chips" aria-label="関心: ${escapeHtml(item.matches.map(m => m.label).join('、'))}">${
+  return `<span class="match-chips" aria-label="${escapeHtml(t('関心: {topics}', { topics: listJoin(item.matches.map(m => t(m.label))) }))}">${
     item.matches.slice(0, 3).map(match => (match.via === 'semantic'
       // キーワードは含まないが、内容が関心に近いと判定された記事
-      ? `<span class="match-chip is-semantic" title="キーワードではなく内容の近さで一致">${escapeHtml(match.label)}</span>`
-      : `<span class="match-chip">${escapeHtml(match.label)}</span>`)).join('')
+      ? `<span class="match-chip is-semantic" title="${escapeHtml(t('キーワードではなく内容の近さで一致'))}">${escapeHtml(t(match.label))}</span>`
+      : `<span class="match-chip">${escapeHtml(t(match.label))}</span>`)).join('')
   }</span>`;
 }
 
@@ -272,8 +276,8 @@ function relatedLine(item) {
   const related = item.related ?? [];
   if (!related.length) return '';
   const others = [...new Set(related.map(r => r.sourceName).filter(name => name !== item.sourceName))];
-  const sources = others.length ? `${others.slice(0, 2).join('・')}${others.length > 2 ? ' など' : ''}` : '同じ発信元の続報';
-  return `<div class="related-line">${ICONS.stack}<span class="related-count">関連 ${related.length}件</span><span class="related-sources">${escapeHtml(sources)}</span></div>`;
+  const sources = others.length ? `${others.slice(0, 2).join('・')}${others.length > 2 ? t(' など') : ''}` : t('同じ発信元の続報');
+  return `<div class="related-line">${ICONS.stack}<span class="related-count">${escapeHtml(t('関連 {n}件', { n: related.length }))}</span><span class="related-sources">${escapeHtml(sources)}</span></div>`;
 }
 
 // ---------- ブリーフィング（マイニュースの先頭） ----------
@@ -284,14 +288,14 @@ function showBriefing() {
 
 function renderBriefing(briefing) {
   if (!briefing?.stories?.length) return '';
-  const period = briefing.windowHours <= 24 ? '過去24時間' : briefing.windowHours <= 72 ? `過去${briefing.windowHours}時間` : `過去${Math.round(briefing.windowHours / 24)}日間`;
-  const title = briefing.windowHours <= 24 ? '今日のブリーフィング' : '最近のブリーフィング';
+  const period = briefing.windowHours <= 24 ? t('過去24時間') : briefing.windowHours <= 72 ? t('過去{n}時間', { n: briefing.windowHours }) : t('過去{n}日間', { n: Math.round(briefing.windowHours / 24) });
+  const title = escapeHtml(briefing.windowHours <= 24 ? t('今日のブリーフィング') : t('最近のブリーフィング'));
   return `
     <section class="briefing" aria-label="${title}">
       <div class="briefing-head">
         <span class="briefing-kicker">BRIEFING</span>
         <h2 class="briefing-title">${title}</h2>
-        <p class="briefing-sub">${period}に、あなたの関心に一致した ${briefing.storyCount}件の話題から</p>
+        <p class="briefing-sub">${escapeHtml(t('{period}に、あなたの関心に一致した {n}件の話題から', { period, n: briefing.storyCount }))}</p>
       </div>
       <ol class="briefing-list">
         ${briefing.stories.map((story, index) => `
@@ -301,14 +305,14 @@ function renderBriefing(briefing) {
               <span class="briefing-body">
                 <span class="briefing-item-title">${escapeHtml(story.title)}</span>
                 ${story.line ? `<span class="briefing-line">${escapeHtml(story.line)}</span>` : ''}
-                <span class="briefing-meta">${escapeHtml(story.sourceName)}${story.related?.length ? ` ほか${story.related.length}件` : ''} · ${escapeHtml(formatRelative(story.publishedAt))}${matchChips(story)}</span>
+                <span class="briefing-meta">${escapeHtml(story.sourceName)}${story.related?.length ? escapeHtml(t(' ほか{n}件', { n: story.related.length })) : ''} · ${escapeHtml(formatRelative(story.publishedAt))}${matchChips(story)}</span>
               </span>
             </a>
           </li>`).join('')}
       </ol>
       ${briefing.topics?.length ? `
-        <div class="briefing-topics" aria-label="関心トピックごとの話題数">
-          ${briefing.topics.map(topic => `<span class="briefing-topic">${escapeHtml(topic.label)} <b>${topic.count}</b></span>`).join('')}
+        <div class="briefing-topics" aria-label="${escapeHtml(t('関心トピックごとの話題数'))}">
+          ${briefing.topics.map(topic => `<span class="briefing-topic">${escapeHtml(t(topic.label))} <b>${topic.count}</b></span>`).join('')}
         </div>` : ''}
     </section>
   `;
@@ -330,10 +334,10 @@ function renderHero(item) {
     <a class="hero" href="#/article/${encodeURIComponent(item.id)}" data-id="${escapeHtml(item.id)}" data-cat="${escapeHtml(category)}">
       <img src="${escapeHtml(safeUrl(item.imageUrl))}" alt="" referrerpolicy="no-referrer" onerror="this.closest('.hero').classList.add('no-image');this.remove()">
       <div class="hero-body">
-        <span class="cat-pill">${escapeHtml(category)}・${escapeHtml(item.subgroup)}</span>
+        <span class="cat-pill">${escapeHtml(t(category))}・${escapeHtml(t(item.subgroup))}</span>
         <h2 class="hero-title">${escapeHtml(displayTitle(item))}</h2>
         ${summary ? `<p class="hero-summary">${escapeHtml(summary)}</p>` : ''}
-        <div class="hero-meta">${escapeHtml(item.sourceName)} · ${escapeHtml(formatRelative(item.publishedAt))}${item.matches?.length ? ` · ${escapeHtml(item.matches.map(m => m.label).join('・'))}` : ''}</div>
+        <div class="hero-meta">${escapeHtml(item.sourceName)} · ${escapeHtml(formatRelative(item.publishedAt))}${item.matches?.length ? ` · ${escapeHtml(item.matches.map(m => t(m.label)).join('・'))}` : ''}</div>
       </div>
     </a>
   `;
@@ -350,10 +354,10 @@ function renderCard(item) {
     <a class="card" href="#/article/${encodeURIComponent(item.id)}" data-id="${escapeHtml(item.id)}" data-cat="${escapeHtml(category)}">
       <div class="card-body">
         <div class="card-meta">
-          <span class="cat-label">${item.isSample ? 'サンプル' : `${escapeHtml(category)}・${escapeHtml(item.subgroup)}`}</span>
+          <span class="cat-label">${item.isSample ? escapeHtml(t('サンプル')) : `${escapeHtml(t(category))}・${escapeHtml(t(item.subgroup))}`}</span>
           <span class="sep" aria-hidden="true"></span>
           <span class="source">${escapeHtml(item.sourceName)}</span>
-          ${SOURCE_BADGES[item.sourceType] ? `<span class="source-badge">${SOURCE_BADGES[item.sourceType]}</span>` : ''}
+          ${typeBadge(item.sourceType) ? `<span class="source-badge">${escapeHtml(typeBadge(item.sourceType))}</span>` : ''}
         </div>
         <h3 class="card-title">${escapeHtml(displayTitle(item))}</h3>
         ${cardSummary(item)}
@@ -394,14 +398,17 @@ let lastRenderedDay = null;
 
 function renderNews() {
   if (!state.items.length) {
-    const sourceLabel = SOURCE_TYPE_LABELS[state.sourceTypeByTab[state.tab]];
-    const tabLabel = isForYou() ? 'マイニュース' : state.tab || 'すべてのカテゴリ';
-    const scope = [tabLabel, state.subgroupByTab[state.tab], sourceLabel].filter(Boolean).join('・');
+    const sourceType = state.sourceTypeByTab[state.tab];
+    const subgroup = state.subgroupByTab[state.tab];
+    const tabLabel = isForYou() ? t('マイニュース') : state.tab ? t(state.tab) : t('すべてのカテゴリ');
+    const scope = [tabLabel, subgroup && t(subgroup), sourceType && typeLabel(sourceType)].filter(Boolean).join('・');
+    // 設定へのリンクだけは HTML のまま差し込む（文言は固定で、利用者の入力は含まない）
+    const settingsLink = `<a href="#/settings">${escapeHtml(t('設定'))}</a>`;
     newsList.innerHTML = state.keyword
-      ? `<div class="empty-state"><strong>「${escapeHtml(state.keyword)}」に一致する記事はありません</strong>別のキーワードをお試しください。</div>`
+      ? `<div class="empty-state"><strong>${escapeHtml(t('「{keyword}」に一致する記事はありません', { keyword: state.keyword }))}</strong>${escapeHtml(t('別のキーワードをお試しください。'))}</div>`
       : isForYou()
-        ? `<div class="empty-state"><strong>関心に一致する記事がまだありません</strong><a href="#/settings">設定</a>で関心トピックやキーワードを追加できます。</div>`
-        : `<div class="empty-state"><strong>まだ記事がありません</strong>${escapeHtml(scope)}の新しい発表が出ると、ここに表示されます。</div>`;
+        ? `<div class="empty-state"><strong>${escapeHtml(t('関心に一致する記事がまだありません'))}</strong>${escapeHtml(t('{link}で関心トピックやキーワードを追加できます。', { link: '\u0000' })).replace('\u0000', settingsLink)}</div>`
+        : `<div class="empty-state"><strong>${escapeHtml(t('まだ記事がありません'))}</strong>${escapeHtml(t('{scope}の新しい発表が出ると、ここに表示されます。', { scope }))}</div>`;
     moreButton.hidden = true;
     return;
   }
@@ -410,7 +417,7 @@ function renderNews() {
   const rendered = renderItems(state.items, null, !state.keyword && !briefingHtml);
   lastRenderedDay = rendered.lastDay;
   newsList.innerHTML = briefingHtml
-    ? `${briefingHtml}<h2 class="day-heading">すべてのマイニュース</h2>${rendered.html}`
+    ? `${briefingHtml}<h2 class="day-heading">${escapeHtml(t('すべてのマイニュース'))}</h2>${rendered.html}`
     : rendered.html;
   moreButton.hidden = state.items.length >= state.total;
 }
@@ -450,14 +457,14 @@ async function fetchNewsPage(offset) {
 function updateStatus() {
   const sampleOnly = state.items.length > 0 && state.items.every(item => item.isSample);
   status.textContent = sampleOnly
-    ? '公式フィードを取得できなかったため、サンプルを表示しています'
-    : `${state.total.toLocaleString('ja-JP')}件${state.keyword ? `・「${state.keyword}」` : ''}`;
+    ? t('公式フィードを取得できなかったため、サンプルを表示しています')
+    : `${t('{n}件', { n: state.total.toLocaleString(locale()) })}${state.keyword ? t('・「{keyword}」', { keyword: state.keyword }) : ''}`;
 }
 
 async function refreshNews() {
   // 古いリクエストの応答が後から届いても、最新の結果を上書きしないようにする
   const seq = ++requestSeq;
-  status.textContent = '更新中…';
+  status.textContent = t('更新中…');
   renderSkeleton();
 
   try {
@@ -471,7 +478,7 @@ async function refreshNews() {
   } catch (error) {
     if (seq !== requestSeq) return;
     state.items = [];
-    newsList.innerHTML = '<div class="empty-state"><strong>ニュースを読み込めませんでした</strong>通信状況を確認して、ページを再読み込みしてください。</div>';
+    newsList.innerHTML = `<div class="empty-state"><strong>${escapeHtml(t('ニュースを読み込めませんでした'))}</strong>${escapeHtml(t('通信状況を確認して、ページを再読み込みしてください。'))}</div>`;
     status.textContent = '';
   }
 }
@@ -480,7 +487,7 @@ async function loadMore() {
   if (state.loadingMore || state.items.length >= state.total) return;
   const seq = requestSeq;
   state.loadingMore = true;
-  moreButton.textContent = '読み込み中…';
+  moreButton.textContent = t('読み込み中…');
   try {
     const page = await fetchNewsPage(state.items.length);
     if (seq !== requestSeq) return;
@@ -494,7 +501,7 @@ async function loadMore() {
     // 失敗時はボタンから再試行できるようにする
   } finally {
     state.loadingMore = false;
-    moreButton.textContent = 'さらに読み込む';
+    moreButton.textContent = t('さらに読み込む');
   }
 }
 
@@ -560,22 +567,22 @@ function renderAiCard(detail) {
 
   if (summary) {
     const source = {
-      article: '発信元ページの本文',
-      pdf: '発信元が公開した PDF 資料',
-      feed: '発信元の配信文（本文を取得できなかったため）'
-    }[summary.basis] ?? '発信元の本文';
+      article: t('発信元ページの本文'),
+      pdf: t('発信元が公開した PDF 資料'),
+      feed: t('発信元の配信文（本文を取得できなかったため）')
+    }[summary.basis] ?? t('発信元の本文');
     const isLlm = summary.method === 'llm';
-    const title = isLlm ? 'AI要約' : '要約';
+    const title = isLlm ? t('AI要約') : t('要約');
     const note = isLlm
-      ? `${source}のみをもとに、AI（${summary.model}）が作成した要約です。誤りを含む可能性があるため、重要な内容は元記事でご確認ください。`
-      : `${source}から重要な文をそのまま抜き出しています（AI による書き換えはしていません）。`;
+      ? t('{source}のみをもとに、AI（{model}）が作成した要約です。誤りを含む可能性があるため、重要な内容は元記事でご確認ください。', { source, model: summary.model })
+      : t('{source}から重要な文をそのまま抜き出しています（AI による書き換えはしていません）。', { source });
     const body = summary.summary
       ? `<p class="ai-summary">${escapeHtml(summary.summary)}</p>
         ${summary.keyPoints?.length ? `<ul class="ai-points">${summary.keyPoints.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}`
-      : '<p class="ai-summary">発信元ページから、この記事の内容を読み取れませんでした。元記事でご確認ください。</p>';
+      : `<p class="ai-summary">${escapeHtml(t('発信元ページから、この記事の内容を読み取れませんでした。元記事でご確認ください。'))}</p>`;
     return `
-      <section class="ai-card${isLlm ? '' : ' is-extract'}" aria-label="${title}">
-        <div class="ai-card-head">${isLlm ? ICONS.sparkle : ICONS.quote}${title}</div>
+      <section class="ai-card${isLlm ? '' : ' is-extract'}" aria-label="${escapeHtml(title)}">
+        <div class="ai-card-head">${isLlm ? ICONS.sparkle : ICONS.quote}${escapeHtml(title)}</div>
         ${body}
         <p class="ai-note">${escapeHtml(note)}</p>
       </section>
@@ -584,9 +591,9 @@ function renderAiCard(detail) {
 
   if (summaryState === 'loading') {
     return `
-      <section class="ai-card is-loading" aria-label="要約" aria-busy="true">
-        <div class="ai-card-head">${ICONS.sparkle}要約</div>
-        <p class="ai-summary">記事を読み込んで要約しています…</p>
+      <section class="ai-card is-loading" aria-label="${escapeHtml(t('要約'))}" aria-busy="true">
+        <div class="ai-card-head">${ICONS.sparkle}${escapeHtml(t('要約'))}</div>
+        <p class="ai-summary">${escapeHtml(t('記事を読み込んで要約しています…'))}</p>
         <div class="ai-loading" aria-hidden="true">
           <div class="skeleton" style="width: 100%"></div>
           <div class="skeleton" style="width: 92%"></div>
@@ -598,10 +605,10 @@ function renderAiCard(detail) {
 
   if (summaryState === 'error') {
     return `
-      <section class="ai-card is-info" aria-label="要約">
-        <div class="ai-card-head">${ICONS.sparkle}要約</div>
-        <p class="ai-summary">${escapeHtml(summaryError || '要約を作成できませんでした。')}</p>
-        <button class="retry-button" type="button" data-action="retry-summary">もう一度試す</button>
+      <section class="ai-card is-info" aria-label="${escapeHtml(t('要約'))}">
+        <div class="ai-card-head">${ICONS.sparkle}${escapeHtml(t('要約'))}</div>
+        <p class="ai-summary">${escapeHtml(summaryError || t('要約を作成できませんでした。'))}</p>
+        <button class="retry-button" type="button" data-action="retry-summary">${escapeHtml(t('もう一度試す'))}</button>
       </section>
     `;
   }
@@ -616,12 +623,12 @@ function renderExcerpt(detail) {
     body = '<div class="ai-loading" aria-hidden="true"><div class="skeleton" style="width: 100%"></div><div class="skeleton" style="width: 80%"></div></div>';
   } else if (content.paragraphs.length) {
     body = content.paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('');
-    if (content.truncated) body += '<p class="excerpt-more">続きは元記事でご覧ください。</p>';
+    if (content.truncated) body += `<p class="excerpt-more">${escapeHtml(t('続きは元記事でご覧ください。'))}</p>`;
   } else {
     const fallback = content.description || item.summary;
     const notice = content.status === 'pdf'
-      ? '発表資料は PDF で公開されています。'
-      : '発信元ページから本文を取得できませんでした。';
+      ? t('発表資料は PDF で公開されています。')
+      : t('発信元ページから本文を取得できませんでした。');
     body = `${fallback ? `<p>${escapeHtml(fallback)}</p>` : ''}<p class="excerpt-more">${notice}</p>`;
   }
 
@@ -629,7 +636,7 @@ function renderExcerpt(detail) {
   const open = !summary && !['loading', 'idle'].includes(detail.summaryState);
   return `
     <details class="excerpt" ${open ? 'open' : ''}>
-      <summary>本文の冒頭（発信元より）</summary>
+      <summary>${escapeHtml(t('本文の冒頭（発信元より）'))}</summary>
       <div class="excerpt-body">${body}</div>
     </details>
   `;
@@ -639,13 +646,13 @@ function renderExcerpt(detail) {
 function renderRelated(related) {
   if (!related?.length) return '';
   return `
-    <section class="related" aria-label="関連する発表・報道">
-      <h2 class="related-title">関連する発表・報道</h2>
+    <section class="related" aria-label="${escapeHtml(t('関連する発表・報道'))}">
+      <h2 class="related-title">${escapeHtml(t('関連する発表・報道'))}</h2>
       <ul class="related-list">
         ${related.map(r => `
           <li>
             <a href="#/article/${encodeURIComponent(r.id)}">
-              <span class="related-source">${escapeHtml(r.sourceName)}${SOURCE_BADGES[r.sourceType] ? `<span class="source-badge">${SOURCE_BADGES[r.sourceType]}</span>` : ''} · ${escapeHtml(formatRelative(r.publishedAt))}</span>
+              <span class="related-source">${escapeHtml(r.sourceName)}${typeBadge(r.sourceType) ? `<span class="source-badge">${escapeHtml(typeBadge(r.sourceType))}</span>` : ''} · ${escapeHtml(formatRelative(r.publishedAt))}</span>
               <span class="related-item-title">${escapeHtml(r.title)}</span>
             </a>
           </li>`).join('')}
@@ -669,12 +676,12 @@ function renderDetail() {
   detailView.dataset.cat = category;
   detailView.innerHTML = `
     <div class="detail-kicker">
-      ${item.categories.map(c => `<span class="chip" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</span>`).join('')}
-      <span class="chip is-neutral">${escapeHtml(item.subgroup)}</span>
-      ${item.isSample ? '<span class="chip is-sample">サンプル（取得失敗時の表示）</span>' : ''}
+      ${item.categories.map(c => `<span class="chip" data-cat="${escapeHtml(c)}">${escapeHtml(t(c))}</span>`).join('')}
+      <span class="chip is-neutral">${escapeHtml(t(item.subgroup))}</span>
+      ${item.isSample ? `<span class="chip is-sample">${escapeHtml(t('サンプル（取得失敗時の表示）'))}</span>` : ''}
     </div>
     <h1 class="detail-title">${escapeHtml(headline)}</h1>
-    ${showOriginal ? `<p class="detail-original" lang="en">原題: ${escapeHtml(item.title)}</p>` : ''}
+    ${showOriginal ? `<p class="detail-original" lang="en">${escapeHtml(t('原題: {title}', { title: item.title }))}</p>` : ''}
     <div class="byline" data-cat="${escapeHtml(category)}">
       <span class="byline-avatar" aria-hidden="true">${escapeHtml(sourceInitials(item.sourceName))}</span>
       <span class="byline-text">
@@ -692,7 +699,7 @@ function renderDetail() {
     ${sourceUrl ? `
       <div class="read-bar">
         <a class="read-button" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">
-          元記事を読む（${escapeHtml(item.sourceName)}）${ICONS.external}
+          ${escapeHtml(t('元記事を読む（{source}）', { source: item.sourceName }))}${ICONS.external}
         </a>
       </div>` : ''}
   `;
@@ -722,7 +729,7 @@ async function loadSummary(id) {
   } catch {
     if (!isCurrentDetail(id)) return;
     currentDetail.summaryState = 'error';
-    currentDetail.summaryError = '通信エラーのため要約を取得できませんでした。';
+    currentDetail.summaryError = t('通信エラーのため要約を取得できませんでした。');
   }
   renderDetail();
 }
@@ -745,7 +752,7 @@ async function showDetail(id) {
     renderDetail();
     document.title = `${displayTitle(known)} | Sivry`;
   } else {
-    detailView.innerHTML = '<div class="empty-state">読み込み中…</div>';
+    detailView.innerHTML = `<div class="empty-state">${escapeHtml(t('読み込み中…'))}</div>`;
   }
 
   try {
@@ -774,8 +781,8 @@ async function showDetail(id) {
       renderDetail();
     } else {
       detailView.innerHTML = error.message === 'not-found'
-        ? '<div class="empty-state"><strong>記事が見つかりません</strong>掲載期間が終了した可能性があります。</div>'
-        : '<div class="empty-state"><strong>記事を読み込めませんでした</strong>通信状況を確認してください。</div>';
+        ? `<div class="empty-state"><strong>${escapeHtml(t('記事が見つかりません'))}</strong>${escapeHtml(t('掲載期間が終了した可能性があります。'))}</div>`
+        : `<div class="empty-state"><strong>${escapeHtml(t('記事を読み込めませんでした'))}</strong>${escapeHtml(t('通信状況を確認してください。'))}</div>`;
     }
   }
 }
@@ -797,6 +804,7 @@ function showList() {
   if (state.items.length) {
     state.items = state.items.map(item => itemsById.get(item.id) ?? item);
     renderNews();
+    updateStatus();
   }
   window.scrollTo(0, listScrollY);
 }
@@ -820,7 +828,7 @@ shareButton.addEventListener('click', async () => {
       await navigator.share({ title, text: currentDetail.summary?.summary ?? title, url });
     } else {
       await navigator.clipboard.writeText(`${title}\n${url}`);
-      showToast('リンクをコピーしました');
+      showToast(t('リンクをコピーしました'));
     }
   } catch {
     // 共有シートを閉じた場合などは何もしない
@@ -858,15 +866,15 @@ const CHECK_ICON = '<svg class="choice-check" viewBox="0 0 24 24" aria-hidden="t
 
 function renderChoiceGrid(kind, selected) {
   const options = kind === 'regions'
-    ? choiceOptions.regions.map(option => ({ value: option.value, info: REGION_INFO[option.value], meta: `情報源 ${option.sources}` }))
-    : choiceOptions.categories.map(option => ({ value: option.value, info: CATEGORY_INFO[option.value], meta: `30日で${option.articles}件` }));
+    ? choiceOptions.regions.map(option => ({ value: option.value, info: REGION_INFO[option.value], meta: t('情報源 {n}', { n: option.sources }) }))
+    : choiceOptions.categories.map(option => ({ value: option.value, info: CATEGORY_INFO[option.value], meta: t('30日で{n}件', { n: option.articles }) }));
   return `
     <div class="choice-grid" data-kind="${kind}">
       ${options.map(option => `
         <button class="choice" type="button" data-value="${escapeHtml(option.value)}" ${kind === 'categories' ? `data-cat="${escapeHtml(option.value)}"` : ''} aria-pressed="${selected.includes(option.value)}">
           <span class="choice-text">
-            <span class="choice-label">${escapeHtml(option.value)}</span>
-            <span class="choice-info">${escapeHtml(option.info ?? '')}</span>
+            <span class="choice-label">${escapeHtml(t(option.value))}</span>
+            <span class="choice-info">${escapeHtml(option.info ? t(option.info) : '')}</span>
             <span class="choice-meta">${escapeHtml(option.meta)}</span>
           </span>
           ${CHECK_ICON}
@@ -896,18 +904,18 @@ function renderOnboarding() {
   onboardingView.innerHTML = `
     <div class="onb-inner">
       <div class="onb-progress" aria-hidden="true"><span class="is-active"></span><span class="${isRegions ? '' : 'is-active'}"></span></div>
-      <p class="onb-step">質問 ${onboarding.step} / 2</p>
-      <h1 class="onb-title">${isRegions ? 'どの国・地域の情報を受け取りますか？' : 'どの分野を柱にしますか？'}</h1>
-      <p class="onb-lead">${isRegions
-        ? '政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。'
-        : '選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。'}複数選べます。</p>
-      <button class="text-button onb-all" type="button" data-action="select-all">${selected.length === all.length ? 'すべて解除' : 'すべて選択'}</button>
+      <p class="onb-step">${escapeHtml(t('質問 {step} / 2', { step: onboarding.step }))}</p>
+      <h1 class="onb-title">${escapeHtml(isRegions ? t('どの国・地域の情報を受け取りますか？') : t('どの分野を柱にしますか？'))}</h1>
+      <p class="onb-lead">${escapeHtml(isRegions
+        ? t('政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。')
+        : t('選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。'))}${escapeHtml(t('複数選べます。'))}</p>
+      <button class="text-button onb-all" type="button" data-action="select-all">${escapeHtml(selected.length === all.length ? t('すべて解除') : t('すべて選択'))}</button>
       ${renderChoiceGrid(isRegions ? 'regions' : 'categories', selected)}
       <div class="onb-actions">
-        ${isRegions ? '' : '<button class="secondary-button" type="button" data-action="back">戻る</button>'}
-        <button class="primary-action" type="button" data-action="next" ${selected.length ? '' : 'disabled'}>${isRegions ? '次へ' : 'はじめる'}</button>
+        ${isRegions ? '' : `<button class="secondary-button" type="button" data-action="back">${escapeHtml(t('戻る'))}</button>`}
+        <button class="primary-action" type="button" data-action="next" ${selected.length ? '' : 'disabled'}>${escapeHtml(isRegions ? t('次へ') : t('はじめる'))}</button>
       </div>
-      <p class="onb-note">あとから設定でいつでも変更できます。</p>
+      <p class="onb-note">${escapeHtml(t('あとから設定でいつでも変更できます。'))}</p>
     </div>
   `;
 }
@@ -918,14 +926,14 @@ async function showOnboarding() {
   detailView.hidden = true;
   settingsView.hidden = true;
   onboardingView.hidden = false;
-  document.title = 'ようこそ | Sivry';
+  document.title = `${t('ようこそ')} | Sivry`;
   window.scrollTo(0, 0);
-  onboardingView.innerHTML = '<div class="empty-state">読み込み中…</div>';
+  onboardingView.innerHTML = `<div class="empty-state">${escapeHtml(t('読み込み中…'))}</div>`;
   try {
     await loadChoiceOptions();
     renderOnboarding();
   } catch {
-    onboardingView.innerHTML = '<div class="empty-state"><strong>読み込めませんでした</strong>通信状況を確認してください。</div>';
+    onboardingView.innerHTML = `<div class="empty-state"><strong>${escapeHtml(t('読み込めませんでした'))}</strong>${escapeHtml(t('通信状況を確認してください。'))}</div>`;
   }
 }
 
@@ -975,7 +983,7 @@ onboardingView.addEventListener('click', async (event) => {
       refreshNews();
     } catch {
       event.target.disabled = false;
-      showToast('保存できませんでした');
+      showToast(t('保存できませんでした'));
     }
   }
 });
@@ -1007,11 +1015,11 @@ function splitKeywords(text) {
 function renderTopicEditor(topic, index) {
   const weight = nearestWeight(topic.weight);
   const conditions = [
-    topic.alsoRequires?.length ? `さらに「${topic.alsoRequires.slice(0, 4).join('・')}${topic.alsoRequires.length > 4 ? '…' : ''}」のいずれかを含む` : '',
-    topic.regions?.length ? `地域: ${topic.regions.join('・')}` : '',
-    topic.sourceTypes?.length ? `発信元: ${topic.sourceTypes.map(type => SOURCE_TYPE_LABELS[type] ?? type).join('・')}` : '',
-    topic.sources?.length ? `常に対象: ${topic.sources.join('・')}` : '',
-    topic.boostOnly ? '単独では表示せず、他の関心と重なる記事を上位にする' : ''
+    topic.alsoRequires?.length ? t('さらに「{words}{more}」のいずれかを含む', { words: topic.alsoRequires.slice(0, 4).join('・'), more: topic.alsoRequires.length > 4 ? '…' : '' }) : '',
+    topic.regions?.length ? t('地域: {value}', { value: topic.regions.map(region => t(region)).join('・') }) : '',
+    topic.sourceTypes?.length ? t('発信元: {value}', { value: topic.sourceTypes.map(typeLabel).join('・') }) : '',
+    topic.sources?.length ? t('常に対象: {value}', { value: topic.sources.join('・') }) : '',
+    topic.boostOnly ? t('単独では表示せず、他の関心と重なる記事を上位にする') : ''
   ].filter(Boolean);
 
   return `
@@ -1020,26 +1028,26 @@ function renderTopicEditor(topic, index) {
         <label class="switch">
           <input type="checkbox" data-field="enabled" ${topic.enabled ? 'checked' : ''}>
           <span class="switch-track" aria-hidden="true"></span>
-          <span class="visually-hidden">有効</span>
+          <span class="visually-hidden">${escapeHtml(t('有効'))}</span>
         </label>
-        <input class="topic-label" data-field="label" value="${escapeHtml(topic.label)}" maxlength="40" aria-label="トピック名">
-        <button class="icon-button topic-delete" type="button" data-action="delete-topic" aria-label="このトピックを削除">
+        <input class="topic-label" data-field="label" value="${escapeHtml(t(topic.label))}" maxlength="40" aria-label="${escapeHtml(t('トピック名'))}">
+        <button class="icon-button topic-delete" type="button" data-action="delete-topic" aria-label="${escapeHtml(t('このトピックを削除'))}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>
         </button>
       </div>
-      <div class="segmented" role="radiogroup" aria-label="優先度">
+      <div class="segmented" role="radiogroup" aria-label="${escapeHtml(t('優先度'))}">
         ${WEIGHT_OPTIONS.map(option => `
           <label class="segment">
             <input type="radio" name="weight-${index}" data-field="weight" value="${option.value}" ${option.value === weight ? 'checked' : ''}>
-            <span>${option.label}</span>
+            <span>${escapeHtml(t(option.label))}</span>
           </label>`).join('')}
       </div>
       <label class="field">
-        <span>説明（内容の近さで探します。キーワードを含まない記事も対象になります。空欄ならキーワードだけで判定）</span>
-        <textarea data-field="description" rows="3" maxlength="600" placeholder="読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです">${escapeHtml(topic.description ?? '')}</textarea>
+        <span>${escapeHtml(t('説明（内容の近さで探します。キーワードを含まない記事も対象になります。空欄ならキーワードだけで判定）'))}</span>
+        <textarea data-field="description" rows="3" maxlength="600" placeholder="${escapeHtml(t('読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです'))}">${escapeHtml(topic.description ?? '')}</textarea>
       </label>
       <label class="field">
-        <span>キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）</span>
+        <span>${escapeHtml(t('キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）'))}</span>
         <textarea data-field="keywords" rows="3">${escapeHtml(topic.keywords.join(', '))}</textarea>
       </label>
       ${conditions.length ? `<p class="topic-conditions">${conditions.map(escapeHtml).join('<br>')}</p>` : ''}
@@ -1051,10 +1059,10 @@ function renderTopicEditor(topic, index) {
 function semanticStatusNote() {
   const semantic = state.config?.semantic;
   if (!semantic) return '';
-  if (!semantic.enabled) return '<p class="settings-note">内容の近さによる判定は無効です（キーワードだけで判定しています）。</p>';
+  if (!semantic.enabled) return `<p class="settings-note">${escapeHtml(t('内容の近さによる判定は無効です（キーワードだけで判定しています）。'))}</p>`;
   return semantic.available
-    ? `<p class="settings-note"><span class="match-chip is-semantic">生成AI</span> のように「≈」が付いた関心は、キーワードではなく内容の近さで一致した記事です。判定はこのサーバー上の埋め込みモデル（${escapeHtml(semantic.model)}）で行い、外部の AI サービスは使いません。</p>`
-    : `<p class="settings-note is-warning">埋め込みモデル（${escapeHtml(semantic.model)}）に接続できないため、いまはキーワードだけで判定しています。</p>`;
+    ? `<p class="settings-note">${escapeHtml(t('{chip} のように「≈」が付いた関心は、キーワードではなく内容の近さで一致した記事です。判定はこのサーバー上の埋め込みモデル（{model}）で行い、外部の AI サービスは使いません。', { chip: '\u0000', model: semantic.model })).replace('\u0000', `<span class="match-chip is-semantic">${escapeHtml(t('生成AI'))}</span>`)}</p>`
+    : `<p class="settings-note is-warning">${escapeHtml(t('埋め込みモデル（{model}）に接続できないため、いまはキーワードだけで判定しています。', { model: semantic.model }))}</p>`;
 }
 
 // ---------- 情報源の選択 ----------
@@ -1070,7 +1078,7 @@ function isSourceEnabled(source) {
 function renderSourceRow(source) {
   const enabled = isSourceEnabled(source);
   const outOfRegion = isOutOfRegion(source);
-  const details = [source.label !== source.sourceName ? source.label : '', source.subgroup, source.categories.join('・'), outOfRegion ? '選んだ地域の対象外' : `30日で${source.count}件`].filter(Boolean);
+  const details = [source.label !== source.sourceName ? source.label : '', t(source.subgroup), source.categories.map(category => t(category)).join('・'), outOfRegion ? t('選んだ地域の対象外') : t('30日で{n}件', { n: source.count })].filter(Boolean);
   // 直近の取得に失敗した情報源（発信元のサイトの変更や、アクセスの制限など）
   const failing = !outOfRegion && source.health && !source.health.ok;
   const url = safeUrl(source.sourceUrl);
@@ -1079,14 +1087,14 @@ function renderSourceRow(source) {
       <label class="switch">
         <input type="checkbox" data-source="${escapeHtml(source.id)}" ${enabled ? 'checked' : ''} ${outOfRegion ? 'disabled' : ''}>
         <span class="switch-track" aria-hidden="true"></span>
-        <span class="visually-hidden">${escapeHtml(source.label)}を使う</span>
+        <span class="visually-hidden">${escapeHtml(t('{name}を使う', { name: source.label }))}</span>
       </label>
       <div class="source-meta">
         <span class="source-name">${escapeHtml(source.sourceName)}</span>
         <span class="source-desc">${details.map(escapeHtml).join(' · ')}</span>
-        ${failing ? '<span class="source-error">取得できていません（発信元のサイトの変更またはアクセス制限）</span>' : ''}
+        ${failing ? `<span class="source-error">${escapeHtml(t('取得できていません（発信元のサイトの変更またはアクセス制限）'))}</span>` : ''}
       </div>
-      ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(source.sourceName)}のサイトを開く">
+      ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(t('{name}のサイトを開く', { name: source.sourceName }))}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
       </a>` : ''}
     </li>
@@ -1104,8 +1112,8 @@ function renderSourceGroup(type) {
   return `
     <section class="source-group" data-type="${type}">
       <div class="source-group-head">
-        <h2>${escapeHtml(SOURCE_TYPE_LABELS[type] ?? type)} <span class="source-count">${enabledCount}/${available}</span></h2>
-        ${available ? `<button class="text-button" type="button" data-action="toggle-group" data-type="${type}">${enabledCount ? 'すべてオフ' : 'すべてオン'}</button>` : ''}
+        <h2>${escapeHtml(typeLabel(type))} <span class="source-count">${enabledCount}/${available}</span></h2>
+        ${available ? `<button class="text-button" type="button" data-action="toggle-group" data-type="${type}">${escapeHtml(enabledCount ? t('すべてオフ') : t('すべてオン'))}</button>` : ''}
       </div>
       <ul class="source-list">${sources.map(renderSourceRow).join('')}</ul>
     </section>
@@ -1115,12 +1123,12 @@ function renderSourceGroup(type) {
 function sourceSummary() {
   const available = sourcesDraft.filter(source => !isOutOfRegion(source)).length;
   const enabled = sourcesDraft.filter(isSourceEnabled).length;
-  return `選んだ地域の${available}件中 <strong>${enabled}件</strong>を使用中`;
+  return t('選んだ地域の{available}件中 <strong>{enabled}件</strong>を使用中', { available, enabled });
 }
 
 function renderSourcesPane() {
   return `
-    <p class="settings-lead">政府・自治体、企業、研究機関、団体・NPO が自ら公開した発表だけを集めています。報道機関の記事や論評は含みません。オフにした情報源は、すべてのタブとブリーフィングに表示されず、取り込みもしません。</p>
+    <p class="settings-lead">${escapeHtml(t('政府・自治体、企業、研究機関、団体・NPO が自ら公開した発表だけを集めています。報道機関の記事や論評は含みません。オフにした情報源は、すべてのタブとブリーフィングに表示されず、取り込みもしません。'))}</p>
     <p class="source-summary">${sourceSummary()}</p>
     ${SOURCE_TYPE_ORDER.map(renderSourceGroup).join('')}
   `;
@@ -1128,37 +1136,48 @@ function renderSourcesPane() {
 
 function renderScopePane() {
   return `
-    <p class="settings-lead">受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになります。選んだ地域の外の情報源は取り込みません。マイニュースとブリーフィングは関心トピックで選ぶため、分野に関係なく一致する発表を表示します。</p>
-    <h2 class="settings-subtitle">国・地域</h2>
+    <p class="settings-lead">${escapeHtml(t('受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになります。選んだ地域の外の情報源は取り込みません。マイニュースとブリーフィングは関心トピックで選ぶため、分野に関係なく一致する発表を表示します。'))}</p>
+    <h2 class="settings-subtitle">${escapeHtml(t('国・地域'))}</h2>
     ${renderChoiceGrid('regions', profileDraft.regions)}
-    <h2 class="settings-subtitle">分野</h2>
+    <h2 class="settings-subtitle">${escapeHtml(t('分野'))}</h2>
     ${renderChoiceGrid('categories', profileDraft.categories)}
   `;
 }
 
 function renderTopicsPane() {
   return `
-    <p class="settings-lead">関心のあるトピックを登録すると、キーワードを含む記事と、説明に内容が近い記事を、関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。</p>
+    <p class="settings-lead">${escapeHtml(t('関心のあるトピックを登録すると、キーワードを含む記事と、説明に内容が近い記事を、関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。'))}</p>
     ${semanticStatusNote()}
     <div id="topicList">${profileDraft.topics.map(renderTopicEditor).join('')}</div>
-    <button class="add-topic" type="button" data-action="add-topic">＋ トピックを追加</button>
+    <button class="add-topic" type="button" data-action="add-topic">${escapeHtml(t('＋ トピックを追加'))}</button>
   `;
 }
 
 function renderSettings() {
   settingsView.innerHTML = `
-    <h1 class="settings-title">設定</h1>
-    <div class="segmented settings-tabs" role="radiogroup" aria-label="設定の区分">
+    <h1 class="settings-title">${escapeHtml(t('設定'))}</h1>
+    <section class="settings-language">
+      <h2 class="settings-subtitle">${escapeHtml(t('言語'))}</h2>
+      <div class="segmented" role="radiogroup" aria-label="${escapeHtml(t('言語'))}">
+        ${Object.entries(LANGUAGES).map(([code, language]) => `
+          <label class="segment">
+            <input type="radio" name="app-lang" value="${code}" ${getLang() === code ? 'checked' : ''}>
+            <span lang="${code}">${escapeHtml(language.label)}</span>
+          </label>`).join('')}
+      </div>
+      <p class="settings-note">${escapeHtml(t('画面の表示言語です。記事の本文や要約は発信元・要約エンジンの言語のまま表示されます。'))}</p>
+    </section>
+    <div class="segmented settings-tabs" role="radiogroup" aria-label="${escapeHtml(t('設定の区分'))}">
       ${[['scope', '地域・分野'], ['sources', '情報源'], ['topics', '関心トピック']].map(([value, label]) => `
         <label class="segment">
           <input type="radio" name="settings-pane" value="${value}" ${settingsPane === value ? 'checked' : ''}>
-          <span>${label}</span>
+          <span>${escapeHtml(t(label))}</span>
         </label>`).join('')}
     </div>
     <div class="settings-pane">${{ scope: renderScopePane, sources: renderSourcesPane, topics: renderTopicsPane }[settingsPane]()}</div>
     <div class="settings-actions">
-      <button class="secondary-button" type="button" data-action="reset-profile">初期設定に戻す</button>
-      <button class="primary-action" type="button" data-action="save-profile">保存</button>
+      <button class="secondary-button" type="button" data-action="reset-profile">${escapeHtml(t('初期設定に戻す'))}</button>
+      <button class="primary-action" type="button" data-action="save-profile">${escapeHtml(t('保存'))}</button>
     </div>
   `;
 }
@@ -1183,9 +1202,9 @@ async function showSettings() {
   settingsView.hidden = false;
   backButton.hidden = false;
   shareButton.hidden = true;
-  document.title = '設定 | Sivry';
+  document.title = `${t('設定')} | Sivry`;
   window.scrollTo(0, 0);
-  settingsView.innerHTML = '<div class="empty-state">読み込み中…</div>';
+  settingsView.innerHTML = `<div class="empty-state">${escapeHtml(t('読み込み中…'))}</div>`;
   try {
     const [profile, sources, config] = await Promise.all([
       fetch('/api/profile').then(r => r.json()),
@@ -1202,7 +1221,7 @@ async function showSettings() {
     state.config = config;
     renderSettings();
   } catch {
-    settingsView.innerHTML = '<div class="empty-state"><strong>設定を読み込めませんでした</strong>通信状況を確認してください。</div>';
+    settingsView.innerHTML = `<div class="empty-state"><strong>${escapeHtml(t('設定を読み込めませんでした'))}</strong>${escapeHtml(t('通信状況を確認してください。'))}</div>`;
   }
 }
 
@@ -1224,7 +1243,23 @@ function refreshSourceCounts() {
   if (summary) summary.innerHTML = sourceSummary();
 }
 
+/** 表示言語を切り替える。設定の入力途中の内容は保ったまま、画面全体を描き直す */
+async function switchLanguage(lang) {
+  if (lang === getLang()) return;
+  if (settingsPane === 'topics') collectSettings();
+  setLang(lang);
+  applyStaticTranslations();
+  updateToday();
+  document.title = `${t('設定')} | Sivry`;
+  await reloadFilters().catch(() => {});
+  renderSettings();
+}
+
 settingsView.addEventListener('change', (event) => {
+  if (event.target.name === 'app-lang') {
+    switchLanguage(event.target.value);
+    return;
+  }
   if (event.target.name === 'settings-pane') {
     if (settingsPane === 'topics') collectSettings();
     settingsPane = event.target.value;
@@ -1261,7 +1296,7 @@ settingsView.addEventListener('click', async (event) => {
   } else if (action === 'add-topic') {
     collectSettings();
     profileDraft.topics.push({
-      id: `custom-${Date.now().toString(36)}`, label: '新しいトピック', enabled: true, weight: 1, keywords: [], description: '',
+      id: `custom-${Date.now().toString(36)}`, label: t('新しいトピック'), enabled: true, weight: 1, keywords: [], description: '',
       alsoRequires: [], alsoRequiresRegions: [], regions: [], sourceTypes: [], sources: [], boostOnly: false
     });
     renderSettings();
@@ -1272,7 +1307,7 @@ settingsView.addEventListener('click', async (event) => {
     profileDraft.topics.splice(index, 1);
     renderSettings();
   } else if (action === 'reset-profile') {
-    if (!confirm('地域・分野、情報源、関心トピックを初期設定に戻し、最初の質問からやり直しますか？')) return;
+    if (!confirm(t('地域・分野、情報源、関心トピックを初期設定に戻し、最初の質問からやり直しますか？'))) return;
     await fetch('/api/profile/reset', { method: 'POST' });
     onboarding.step = 1;
     onboarding.regions = [];
@@ -1283,11 +1318,11 @@ settingsView.addEventListener('click', async (event) => {
   } else if (action === 'save-profile') {
     collectSettings();
     if (!profileDraft.regions.length || !profileDraft.categories.length) {
-      showToast('地域と分野をそれぞれ1つ以上選んでください');
+      showToast(t('地域と分野をそれぞれ1つ以上選んでください'));
       return;
     }
     if (!sourcesDraft.some(isSourceEnabled)) {
-      showToast('情報源を1つ以上オンにしてください');
+      showToast(t('情報源を1つ以上オンにしてください'));
       return;
     }
     profileDraft.topics = profileDraft.topics.filter(topic => topic.keywords.length || topic.description || topic.sources?.length);
@@ -1297,10 +1332,10 @@ settingsView.addEventListener('click', async (event) => {
       body: JSON.stringify(profileDraft)
     });
     if (!response.ok) {
-      showToast((await response.json().catch(() => ({}))).error ?? '保存できませんでした');
+      showToast((await response.json().catch(() => ({}))).error ?? t('保存できませんでした'));
       return;
     }
-    showToast('保存しました');
+    showToast(t('保存しました'));
     await reloadFilters().catch(() => {});
     // 関心トピックを編集した場合は、結果を確かめられるようマイニュースを開く
     if (settingsPane === 'topics') {
@@ -1369,9 +1404,14 @@ function route() {
 
 window.addEventListener('hashchange', route);
 
+function updateToday() {
+  todayEl.textContent = new Date().toLocaleDateString(locale(), { month: 'long', day: 'numeric', weekday: 'long' });
+}
+
 (async () => {
-  todayEl.textContent = new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' });
+  updateToday();
   restoreListState();
+  status.textContent = t('読み込み中…');
 
   const [categories] = await Promise.all([
     fetch('/api/filters').then(r => r.json()).then((filters) => { renderFilterOptions(filters); return filters.categories; }).catch(() => []),

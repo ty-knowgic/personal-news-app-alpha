@@ -1780,3 +1780,9 @@ body.is-onboarding .appbar { display: none; }
 }
 
 .briefing-topic b { margin-left: 2px; }
+
+/* ---------- 表示言語の選択 ---------- */
+
+.settings-language .settings-subtitle { margin-top: 8px; }
+.settings-language .segmented { grid-template-columns: repeat(2, 1fr); max-width: 320px; }
+.settings-language .settings-note { margin: 10px 0 4px; }

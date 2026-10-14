@@ -20,7 +20,7 @@
       <div class="appbar-row">
         <button id="backButton" class="nav-back" type="button" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-          <span>戻る</span>
+          <span data-i18n="戻る">戻る</span>
         </button>
 
         <a id="brand" class="brand" href="#/">
@@ -29,13 +29,13 @@
         </a>
 
         <div class="appbar-actions">
-          <button id="shareButton" class="icon-button" type="button" aria-label="共有" hidden>
+          <button id="shareButton" class="icon-button" type="button" data-i18n-aria="共有" aria-label="共有" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12" /><path d="M8 7l4-4 4 4" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
           </button>
-          <button id="settingsButton" class="icon-button" type="button" aria-label="設定">
+          <button id="settingsButton" class="icon-button" type="button" data-i18n-aria="設定" aria-label="設定">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2"/></svg>
           </button>
-          <button id="searchToggle" class="icon-button" type="button" aria-label="検索" aria-expanded="false">
+          <button id="searchToggle" class="icon-button" type="button" data-i18n-aria="検索" aria-label="検索" aria-expanded="false">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
           </button>
         </div>
@@ -44,11 +44,11 @@
       <div id="searchBar" class="search-bar" hidden>
         <div class="search-field">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
-          <input id="keywordInput" type="search" placeholder="キーワード・#タグで検索" enterkeyhint="search" autocomplete="off" />
+          <input id="keywordInput" type="search" data-i18n-placeholder="キーワード・#タグで検索" placeholder="キーワード・#タグで検索" enterkeyhint="search" autocomplete="off" />
         </div>
       </div>
 
-      <nav id="tabs" class="tabs" role="tablist" aria-label="カテゴリ"></nav>
+      <nav id="tabs" class="tabs" role="tablist" data-i18n-aria="カテゴリ" aria-label="カテゴリ"></nav>
     </header>
 
     <main>
@@ -57,16 +57,16 @@
           <div class="filters">
             <label class="region-chip">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" /></svg>
-              <span class="visually-hidden">地域</span>
+              <span class="visually-hidden" data-i18n="地域">地域</span>
               <select id="subgroupFilter">
-                <option value="">すべての地域</option>
+                <option value="" data-i18n="すべての地域">すべての地域</option>
               </select>
             </label>
             <label class="region-chip">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13" /><path d="M9 21v-6h6v6" /></svg>
-              <span class="visually-hidden">発信元</span>
+              <span class="visually-hidden" data-i18n="発信元">発信元</span>
               <select id="sourceTypeFilter">
-                <option value="">すべての発信元</option>
+                <option value="" data-i18n="すべての発信元">すべての発信元</option>
               </select>
             </label>
           </div>
@@ -75,7 +75,7 @@
 
         <div id="newsList" class="news-list"></div>
         <div id="listEnd" class="list-end" aria-hidden="true"></div>
-        <button id="moreButton" class="more-button" type="button" hidden>さらに読み込む</button>
+        <button id="moreButton" class="more-button" type="button" hidden data-i18n="さらに読み込む">さらに読み込む</button>
       </section>
 
       <article id="detailView" class="detail-view" hidden></article>
@@ -85,6 +85,7 @@
       <section id="onboardingView" class="onboarding" hidden></section>
     </main>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

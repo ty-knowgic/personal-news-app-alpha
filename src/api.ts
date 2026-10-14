@@ -156,6 +156,8 @@ export function buildBriefing(ctx: ApiContext) {
       if ((perTopic.get(topic) ?? 0) >= MAX_PER_TOPIC) continue;
       // プレスリリース配信サービスの発表は1件まで（発信元の多様さを保つ）
       if (PR_WIRES.has(story.sourceName) && picked.some(other => PR_WIRES.has(other.sourceName))) continue;
+      // 同じ発信元は1件まで（トピックが違っても同じ省庁・企業の発表が並ばないように）
+      if (picked.some(other => other.sourceName === story.sourceName)) continue;
       perTopic.set(topic, (perTopic.get(topic) ?? 0) + 1);
       picked.push(story);
       if (picked.length >= 5) break;

@@ -1358,31 +1358,41 @@ settingsButton.addEventListener('click', () => {
 
 // 画面の左端から右へスワイプすると前の画面に戻る（ホーム画面に追加したアプリでは標準の戻る操作が効かないため）
 {
-  const EDGE = 28;
+  // 指が最初に触れる位置は端から少し離れることが多いため、開始位置は広めに取る
+  const EDGE = 48;
   const DISTANCE = 70;
+  // 向きを判断するまでに動かす距離。最初の数ピクセルは斜めにぶれるので、それだけでは取り消さない
+  const DECIDE = 12;
   let swipe = null;
   const content = () => document.querySelector('main') ?? document.body;
+  const reset = () => { swipe = null; content().style.transform = ''; };
   document.addEventListener('touchstart', (event) => {
     const touch = event.touches[0];
     swipe = event.touches.length === 1 && touch.clientX <= EDGE && !backButton.hidden
-      ? { x: touch.clientX, y: touch.clientY }
+      ? { x: touch.clientX, y: touch.clientY, horizontal: false }
       : null;
   }, { passive: true });
   document.addEventListener('touchmove', (event) => {
     if (!swipe) return;
     const dx = event.touches[0].clientX - swipe.x;
     const dy = Math.abs(event.touches[0].clientY - swipe.y);
-    if (dy > dx) { swipe = null; content().style.transform = ''; return; }
+    if (!swipe.horizontal) {
+      if (Math.max(Math.abs(dx), dy) < DECIDE) return;
+      // 縦のスクロールか、左向きの動きなら対象外にする
+      if (dy > Math.abs(dx) || dx < 0) { reset(); return; }
+      swipe.horizontal = true;
+    }
     content().style.transform = `translateX(${Math.max(0, Math.min(dx, 120)) / 3}px)`;
   }, { passive: true });
   document.addEventListener('touchend', (event) => {
     if (!swipe) return;
     const dx = event.changedTouches[0].clientX - swipe.x;
-    swipe = null;
-    content().style.transform = '';
-    if (dx >= DISTANCE) backButton.click();
+    const dy = Math.abs(event.changedTouches[0].clientY - swipe.y);
+    const horizontal = swipe.horizontal;
+    reset();
+    if (horizontal && dx >= DISTANCE && dx > dy) backButton.click();
   }, { passive: true });
-  document.addEventListener('touchcancel', () => { swipe = null; content().style.transform = ''; }, { passive: true });
+  document.addEventListener('touchcancel', reset, { passive: true });
 }
 
 // ---------- ルーティング ----------

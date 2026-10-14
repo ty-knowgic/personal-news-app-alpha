@@ -142,6 +142,7 @@ ollama pull embeddinggemma            # 約 620MB
 - 訳がない文言は英語、英語もなければ日本語で表示します。件数で形が変わる文言は `{ "one": …, "other": … }` の形で書きます。
 - 言語を追加する手順: ① `public/i18n.js` の `LANGUAGES` に言語を足す ② `public/locales/<言語>.json` を作る ③ `npm run check:locales` で抜け・余分なキー・`{置き換え}` の食い違いを確かめる（GitHub Actions でも実行します）。
 - **訳は機械的な下訳です。** 公開前に、各言語の母語話者による確認が必要です。
+- 母語話者の確認の手順: ① `python3 scripts/review/export_review.py` で言語ごとの確認シート（`review/sivry-review-<言語>.xlsx`、Git には含めない）を作る ② 各シートを母語話者に渡し、行ごとに OK / Needs change と修正を入れてもらう ③ 返ってきたファイルを `python3 scripts/review/import_review.py <ファイル> --dry-run` で確かめてから、`--dry-run` を外して取り込む ④ `npm run check:locales` を実行する。Python と openpyxl が必要です（開発用で、本番の動作には使いません）。
 - 翻訳しないもの: 記事の見出し・本文・要約・ブリーフィングの文章（発信元と要約エンジンの言語のまま）、初期トピックのキーワードと説明（照合に使うデータ。英語表示では英語の部分だけを見せ、日本語のキーワードは保持します）、サーバーの動的なエラーメッセージ。
 - 未対応: 右から左に書く言語（アラビア語・ペルシア語など）は、`dir` の仕組みだけで、レイアウトの対応は未了です。クメール語・ラオ語・ミャンマー語は未追加です。
 

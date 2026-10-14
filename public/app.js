@@ -46,7 +46,7 @@ const CATEGORY_INFO = {
 // 発信元の種別の表示名（現在の言語）
 const typeLabel = type => t(SOURCE_TYPE_LABELS[type] ?? type);
 const typeBadge = type => (SOURCE_BADGES[type] ? t(SOURCE_BADGES[type]) : '');
-const listJoin = items => items.join(getLang() === 'ja' ? '、' : ', ');
+const listJoin = items => formatList(items);
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
 
@@ -109,9 +109,9 @@ function formatRelative(value) {
   if (Number.isNaN(diff)) return '';
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return t('たった今');
-  if (minutes < 60) return t('{n}分前', { n: minutes });
+  if (minutes < 60) return formatAgo('minute', minutes);
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t('{n}時間前', { n: hours });
+  if (hours < 24) return formatAgo('hour', hours);
   return date.toLocaleString(locale(), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -458,7 +458,7 @@ function updateStatus() {
   const sampleOnly = state.items.length > 0 && state.items.every(item => item.isSample);
   status.textContent = sampleOnly
     ? t('公式フィードを取得できなかったため、サンプルを表示しています')
-    : `${t('{n}件', { n: state.total.toLocaleString(locale()) })}${state.keyword ? t('・「{keyword}」', { keyword: state.keyword }) : ''}`;
+    : `${t('{n}件', { n: state.total.toLocaleString(locale()), count: state.total })}${state.keyword ? t('・「{keyword}」', { keyword: state.keyword }) : ''}`;
 }
 
 async function refreshNews() {
@@ -607,7 +607,7 @@ function renderAiCard(detail) {
     return `
       <section class="ai-card is-info" aria-label="${escapeHtml(t('要約'))}">
         <div class="ai-card-head">${ICONS.sparkle}${escapeHtml(t('要約'))}</div>
-        <p class="ai-summary">${escapeHtml(summaryError || t('要約を作成できませんでした。'))}</p>
+        <p class="ai-summary">${escapeHtml(summaryError ? t(summaryError) : t('要約を作成できませんでした。'))}</p>
         <button class="retry-button" type="button" data-action="retry-summary">${escapeHtml(t('もう一度試す'))}</button>
       </section>
     `;
@@ -862,6 +862,13 @@ async function loadChoiceOptions() {
   return choiceOptions;
 }
 
+/** 言語の選択欄。設定と初回の質問の両方で使う */
+function renderLanguageSelect() {
+  const options = Object.entries(LANGUAGES).map(([code, language]) =>
+    `<option value="${code}" lang="${code}"${getLang() === code ? ' selected' : ''}>${escapeHtml(language.label)}</option>`).join('');
+  return `<select class="language-select" name="app-lang" aria-label="${escapeHtml(t('言語を選ぶ'))}">${options}</select>`;
+}
+
 const CHECK_ICON = '<svg class="choice-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 function renderChoiceGrid(kind, selected) {
@@ -903,6 +910,7 @@ function renderOnboarding() {
   const all = (isRegions ? choiceOptions.regions : choiceOptions.categories).map(option => option.value);
   onboardingView.innerHTML = `
     <div class="onb-inner">
+      <div class="onb-language">${renderLanguageSelect()}</div>
       <div class="onb-progress" aria-hidden="true"><span class="is-active"></span><span class="${isRegions ? '' : 'is-active'}"></span></div>
       <p class="onb-step">${escapeHtml(t('質問 {step} / 2', { step: onboarding.step }))}</p>
       <h1 class="onb-title">${escapeHtml(isRegions ? t('どの国・地域の情報を受け取りますか？') : t('どの分野を柱にしますか？'))}</h1>
@@ -936,6 +944,10 @@ async function showOnboarding() {
     onboardingView.innerHTML = `<div class="empty-state"><strong>${escapeHtml(t('読み込めませんでした'))}</strong>${escapeHtml(t('通信状況を確認してください。'))}</div>`;
   }
 }
+
+onboardingView.addEventListener('change', (event) => {
+  if (event.target.name === 'app-lang') switchLanguage(event.target.value);
+});
 
 onboardingView.addEventListener('click', async (event) => {
   const key = onboarding.step === 1 ? 'regions' : 'categories';
@@ -1141,7 +1153,7 @@ function renderSourceGroup(type) {
 function sourceSummary() {
   const available = sourcesDraft.filter(source => !isOutOfRegion(source)).length;
   const enabled = sourcesDraft.filter(isSourceEnabled).length;
-  return t('選んだ地域の{available}件中 <strong>{enabled}件</strong>を使用中', { available, enabled });
+  return t('選んだ地域の{available}件中 <strong>{enabled}件</strong>を使用中', { available, enabled, n: enabled });
 }
 
 function renderSourcesPane() {
@@ -1175,14 +1187,8 @@ function renderSettings() {
   settingsView.innerHTML = `
     <h1 class="settings-title">${escapeHtml(t('設定'))}</h1>
     <section class="settings-language">
-      <h2 class="settings-subtitle">${escapeHtml(t('言語'))}</h2>
-      <div class="segmented" role="radiogroup" aria-label="${escapeHtml(t('言語'))}">
-        ${Object.entries(LANGUAGES).map(([code, language]) => `
-          <label class="segment">
-            <input type="radio" name="app-lang" value="${code}" ${getLang() === code ? 'checked' : ''}>
-            <span lang="${code}">${escapeHtml(language.label)}</span>
-          </label>`).join('')}
-      </div>
+      <h2 class="settings-subtitle">${escapeHtml(getLang() === 'en' ? t('言語') : `${t('言語')} / Language`)}</h2>
+      ${renderLanguageSelect()}
       <p class="settings-note">${escapeHtml(t('画面の表示言語です。記事の本文や要約は発信元・要約エンジンの言語のまま表示されます。'))}</p>
     </section>
     <div class="segmented settings-tabs" role="radiogroup" aria-label="${escapeHtml(t('設定の区分'))}">
@@ -1278,13 +1284,18 @@ function refreshSourceCounts() {
 /** 表示言語を切り替える。設定の入力途中の内容は保ったまま、画面全体を描き直す */
 async function switchLanguage(lang) {
   if (lang === getLang()) return;
-  if (settingsPane === 'topics') collectSettings();
-  setLang(lang);
-  applyStaticTranslations();
+  const inSettings = !settingsView.hidden;
+  if (inSettings && settingsPane === 'topics') collectSettings();
+  await setLang(lang);
   updateToday();
+  if (!onboardingView.hidden) {
+    document.title = `${t('ようこそ')} | Sivry`;
+    renderOnboarding();
+    return;
+  }
   document.title = `${t('設定')} | Sivry`;
   await reloadFilters().catch(() => {});
-  renderSettings();
+  if (inSettings) renderSettings();
 }
 
 settingsView.addEventListener('change', (event) => {
@@ -1364,7 +1375,8 @@ settingsView.addEventListener('click', async (event) => {
       body: JSON.stringify(profileDraft)
     });
     if (!response.ok) {
-      showToast((await response.json().catch(() => ({}))).error ?? t('保存できませんでした'));
+      const { error } = await response.json().catch(() => ({}));
+      showToast(error ? t(error) : t('保存できませんでした'));
       return;
     }
     showToast(t('保存しました'));
@@ -1451,6 +1463,7 @@ function updateToday() {
 }
 
 (async () => {
+  await i18nReady;
   updateToday();
   restoreListState();
   status.textContent = t('読み込み中…');

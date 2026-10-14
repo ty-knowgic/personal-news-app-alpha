@@ -364,9 +364,11 @@ main {
 .list-toolbar {
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  /* 言語によってフィルターの文言が長いと件数が収まらないため、はみ出す分は次の行に回す */
+  gap: 6px 12px;
   padding: 14px 0 10px;
 }
 
@@ -1784,7 +1786,6 @@ body.is-onboarding .appbar { display: none; }
 /* ---------- 表示言語の選択 ---------- */
 
 .settings-language .settings-subtitle { margin-top: 8px; }
-.settings-language .segmented { grid-template-columns: repeat(2, 1fr); max-width: 320px; }
 .settings-language .settings-note { margin: 10px 0 4px; }
 
 .field-note {
@@ -1792,3 +1793,29 @@ body.is-onboarding .appbar { display: none; }
   font-size: 0.72rem;
   line-height: 1.5;
 }
+
+/* ---------- 言語ごとの書体（html の lang に合わせる） ---------- */
+
+/* 'palt' は日本語の字間を詰める設定。他の言語には使わない */
+html:not(:lang(ja)) body { font-feature-settings: normal; }
+html:lang(zh-CN) body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', 'Segoe UI', sans-serif; }
+html:lang(zh-TW) body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Segoe UI', sans-serif; }
+html:lang(th) body { font-family: -apple-system, BlinkMacSystemFont, 'Thonburi', 'Sukhumvit Set', 'Noto Sans Thai', 'Leelawadee UI', 'Segoe UI', sans-serif; line-height: 1.65; }
+html:lang(vi) body { line-height: 1.6; }
+/* 単語の間に空白を入れない言語（タイ語・中国語）でも、長い見出しがはみ出さないようにする */
+.card-title, .hero-title, .detail-title, .briefing-item-title, .briefing-line { overflow-wrap: anywhere; }
+
+/* ---------- 言語の選択欄 ---------- */
+
+.language-select {
+  width: 100%;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 16px;
+}
+
+.onb-language { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.onb-language .language-select { width: auto; max-width: 100%; }

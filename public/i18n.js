@@ -1,342 +1,145 @@
-// 画面の言語切り替え。日本語の文言をそのままキーにし、他の言語の訳を LANGUAGES に追加する。
-// 訳がないキーは日本語のまま表示する。{name} は t() の第2引数で置き換える。
+// 画面の言語切り替え。日本語の文言をそのままキーにし、各言語の訳は locales/<言語>.json に置く。
+// 訳の探し方: 選んだ言語 → 情報源の名前（sources.json）→ 英語（en.json）→ キー（日本語）の順。
+// 日本語は訳を持たず、キーをそのまま表示する。{name} は t() の第2引数で置き換える。
+// 件数で形が変わる文言は {one, other, …} の形で書き、Intl.PluralRules の区分で選ぶ（件数は count か n）。
 // 記事の本文・要約・ブリーフィングの文章は発信元と要約エンジンが作るため、この仕組みでは翻訳しない。
 const LANGUAGES = {
-  ja: { label: '日本語', locale: 'ja-JP', messages: {} },
-  en: {
-    label: 'English',
-    locale: 'en-CA',
-    messages: {
-      // ヘッダー・一覧
-      '戻る': 'Back',
-      '共有': 'Share',
-      '設定': 'Settings',
-      '検索': 'Search',
-      'キーワード・#タグで検索': 'Search keywords or #tags',
-      'カテゴリ': 'Categories',
-      '地域': 'Region',
-      'すべての地域': 'All regions',
-      '発信元': 'Publisher',
-      'すべての発信元': 'All publishers',
-      '読み込み中…': 'Loading…',
-      '更新中…': 'Updating…',
-      'さらに読み込む': 'Load more',
-      'マイニュース': 'My News',
-      'すべて': 'All',
-      'すべてのカテゴリ': 'All categories',
-      'すべてのマイニュース': 'All My News',
-      // 日時
-      'たった今': 'Just now',
-      '{n}分前': '{n}m ago',
-      '{n}時間前': '{n}h ago',
-      '今日': 'Today',
-      '昨日': 'Yesterday',
-      // 発信元の種別
-      '政府・自治体': 'Government',
-      '企業': 'Companies',
-      '研究機関': 'Research institutes',
-      '団体・NPO': 'Organizations & NPOs',
-      '研究': 'Research',
-      '団体': 'Org',
-      // 分野
-      '政治': 'Politics',
-      '経済': 'Economy',
-      '投資': 'Investment',
-      '安全保障': 'Security',
-      '国際': 'International',
-      '社会': 'Society',
-      'テクノロジー': 'Technology',
-      '生成AI': 'Generative AI',
-      'サイエンス': 'Science',
-      '文化・芸術': 'Culture & Arts',
-      'イベント': 'Events',
-      // 地域
-      '日本': 'Japan',
-      'カナダ': 'Canada',
-      '米国': 'United States',
-      '欧州': 'Europe',
-      'グローバル': 'Global',
-      // 地域・分野の説明
-      '連邦政府・オンタリオ州・ウォータールー地域の自治体': 'Federal government, Ontario, and Waterloo-area municipalities',
-      '官邸・各省庁・日本銀行・企業の発表': 'Prime Minister’s Office, ministries, the Bank of Japan and companies',
-      '連邦政府・規制当局・企業': 'Federal government, regulators and companies',
-      'EU・英国': 'EU and UK',
-      '国際機関・多国籍企業': 'International organizations and multinational companies',
-      '政府の方針・法案・選挙': 'Government policy, legislation and elections',
-      '金融政策・統計・企業の決算や M&A': 'Monetary policy, statistics, corporate earnings and M&A',
-      '政府の投資策・スタートアップの資金調達': 'Government investment policy and startup funding',
-      '防衛・サイバーセキュリティ': 'Defence and cybersecurity',
-      '外交・国際機関': 'Diplomacy and international organizations',
-      '保健・福祉・教育・地域の暮らし': 'Health, welfare, education and community life',
-      'ロボット・半導体・デジタル政策': 'Robotics, semiconductors and digital policy',
-      'LLM・AI エージェント・AI 企業の発表': 'LLMs, AI agents and AI company announcements',
-      '数学・科学・工学（STEM）の研究成果': 'Research in mathematics, science and engineering (STEM)',
-      '芸術・文化財・文化政策': 'Arts, cultural heritage and cultural policy',
-      '催し・展示会・カンファレンス': 'Events, exhibitions and conferences',
-      '情報源 {n}': '{n} sources',
-      '30日で{n}件': '{n} items in 30 days',
-      // 既定の関心トピック名
-      'ウォータールー周辺': 'Waterloo area',
-      'オンタリオ州': 'Ontario',
-      'Physical AI・ロボット': 'Physical AI & robotics',
-      '日本×カナダ': 'Japan × Canada',
-      '米国・EU のテック政策': 'US & EU tech policy',
-      '数学・新発見': 'Mathematics & discoveries',
-      '提携・資金調達・M&A': 'Partnerships, funding & M&A',
-      // 記事カード
-      'AI要約': 'AI summary',
-      '要約': 'Summary',
-      '関心: {topics}': 'Interests: {topics}',
-      'キーワードではなく内容の近さで一致': 'Matched by meaning, not keywords',
-      ' など': ' and others',
-      '同じ発信元の続報': 'Follow-up from the same publisher',
-      '関連 {n}件': '{n} related',
-      ' ほか{n}件': ' +{n} more',
-      'サンプル': 'Sample',
-      '公式フィードを取得できなかったため、サンプルを表示しています': 'Official feeds could not be fetched, so sample items are shown',
-      '{n}件': '{n} items',
-      '・「{keyword}」': ' · “{keyword}”',
-      '「{keyword}」に一致する記事はありません': 'No articles match “{keyword}”',
-      '別のキーワードをお試しください。': 'Try a different keyword.',
-      '関心に一致する記事がまだありません': 'No articles match your interests yet',
-      '{link}で関心トピックやキーワードを追加できます。': 'Add interest topics or keywords in {link}.',
-      'まだ記事がありません': 'No articles yet',
-      '{scope}の新しい発表が出ると、ここに表示されます。': 'New announcements for {scope} will appear here.',
-      'ニュースを読み込めませんでした': 'Could not load the news',
-      '通信状況を確認して、ページを再読み込みしてください。': 'Check your connection and reload the page.',
-      // ブリーフィング
-      '過去24時間': 'Last 24 hours',
-      '過去{n}時間': 'Last {n} hours',
-      '過去{n}日間': 'Last {n} days',
-      '今日のブリーフィング': 'Today’s briefing',
-      '最近のブリーフィング': 'Recent briefing',
-      '{period}に、あなたの関心に一致した {n}件の話題から': '{period}: {n} stories matching your interests',
-      '関心トピックごとの話題数': 'Stories per interest topic',
-      // 詳細
-      '発信元ページの本文': 'the publisher’s page',
-      '発信元が公開した PDF 資料': 'the PDF published by the publisher',
-      '発信元の配信文（本文を取得できなかったため）': 'the publisher’s feed text (the full page could not be fetched)',
-      '発信元の本文': 'the publisher’s text',
-      '{source}のみをもとに、AI（{model}）が作成した要約です。誤りを含む可能性があるため、重要な内容は元記事でご確認ください。': 'Summary written by AI ({model}) based only on {source}. It may contain errors, so check the original for anything important.',
-      '{source}から重要な文をそのまま抜き出しています（AI による書き換えはしていません）。': 'Key sentences are extracted verbatim from {source} (not rewritten by AI).',
-      '発信元ページから、この記事の内容を読み取れませんでした。元記事でご確認ください。': 'Could not read this article from the publisher’s page. Please check the original.',
-      '記事を読み込んで要約しています…': 'Reading the article and summarizing…',
-      '要約を作成できませんでした。': 'Could not create a summary.',
-      'もう一度試す': 'Try again',
-      '続きは元記事でご覧ください。': 'Read the rest at the original.',
-      '発表資料は PDF で公開されています。': 'The announcement is published as a PDF.',
-      '発信元ページから本文を取得できませんでした。': 'Could not fetch the text from the publisher’s page.',
-      '本文の冒頭（発信元より）': 'Opening text (from the publisher)',
-      '関連する発表・報道': 'Related announcements',
-      'サンプル（取得失敗時の表示）': 'Sample (shown when fetching fails)',
-      '原題: {title}': 'Original title: {title}',
-      '元記事を読む（{source}）': 'Read the original ({source})',
-      '通信エラーのため要約を取得できませんでした。': 'Could not fetch the summary because of a network error.',
-      '記事が見つかりません': 'Article not found',
-      '掲載期間が終了した可能性があります。': 'It may have passed its retention period.',
-      '記事を読み込めませんでした': 'Could not load the article',
-      '通信状況を確認してください。': 'Please check your connection.',
-      'リンクをコピーしました': 'Link copied',
-      // 初回の質問
-      '質問 {step} / 2': 'Question {step} / 2',
-      'どの国・地域の情報を受け取りますか？': 'Which countries and regions do you want news from?',
-      'どの分野を柱にしますか？': 'Which topics should be your main focus?',
-      '政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。': 'We collect primary information published directly by governments, companies, research institutes and organizations. News media articles are not included.',
-      '選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。': 'The topics you choose become tabs. My News shows announcements that match your interest topics, whatever their category.',
-      '複数選べます。': ' You can choose several.',
-      'すべて解除': 'Clear all',
-      'すべて選択': 'Select all',
-      '次へ': 'Next',
-      'はじめる': 'Get started',
-      'あとから設定でいつでも変更できます。': 'You can change this any time in Settings.',
-      'ようこそ': 'Welcome',
-      '読み込めませんでした': 'Could not load',
-      '保存できませんでした': 'Could not save',
-      // 設定
-      '低': 'Low',
-      '中': 'Medium',
-      '高': 'High',
-      '最優先': 'Top',
-      '地域・分野': 'Regions & topics',
-      '情報源': 'Sources',
-      '関心トピック': 'Interests',
-      '設定の区分': 'Settings section',
-      '言語': 'Language',
-      '画面の表示言語です。記事の本文や要約は発信元・要約エンジンの言語のまま表示されます。': 'The language of the app interface. Article text and summaries stay in the language produced by the publisher and the summary engine.',
-      '初期設定に戻す': 'Reset to defaults',
-      '保存': 'Save',
-      '保存しました': 'Saved',
-      '設定を読み込めませんでした': 'Could not load settings',
-      '有効': 'Enabled',
-      'トピック名': 'Topic name',
-      'このトピックを削除': 'Delete this topic',
-      '優先度': 'Priority',
-      '説明（内容の近さで探します。キーワードを含まない記事も対象になります。空欄ならキーワードだけで判定）': 'Description (matched by meaning, so articles without the keywords can match too. Leave blank to match on keywords only)',
-      '読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです': 'Describe the articles you want to read (e.g. research and commercialization of humanoid robots and robot learning). Place names work better as keywords',
-      'キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）': 'Keywords (separated by line breaks or commas; Japanese or English)',
-      'さらに「{words}{more}」のいずれかを含む': 'Must also contain one of “{words}{more}”',
-      '地域: {value}': 'Regions: {value}',
-      '発信元: {value}': 'Publishers: {value}',
-      '常に対象: {value}': 'Always included: {value}',
-      '単独では表示せず、他の関心と重なる記事を上位にする': 'Not shown on its own; boosts articles that overlap with other interests',
-      '内容の近さによる判定は無効です（キーワードだけで判定しています）。': 'Matching by meaning is turned off (keywords only).',
-      '{chip} のように「≈」が付いた関心は、キーワードではなく内容の近さで一致した記事です。判定はこのサーバー上の埋め込みモデル（{model}）で行い、外部の AI サービスは使いません。': 'Interests marked with “≈”, like {chip}, matched by meaning rather than keywords. Matching runs on the embedding model ({model}) on this server; no external AI service is used.',
-      '埋め込みモデル（{model}）に接続できないため、いまはキーワードだけで判定しています。': 'Cannot reach the embedding model ({model}), so matching is keywords only for now.',
-      '選んだ地域の対象外': 'Outside the selected regions',
-      '{name}を使う': 'Use {name}',
-      '{name}のサイトを開く': 'Open the {name} site',
-      '取得できていません（発信元のサイトの変更またはアクセス制限）': 'Not being fetched (the publisher changed its site or restricts access)',
-      'すべてオフ': 'Turn all off',
-      'すべてオン': 'Turn all on',
-      '選んだ地域の{available}件中 <strong>{enabled}件</strong>を使用中': 'Using <strong>{enabled}</strong> of {available} sources in the selected regions',
-      '政府・自治体、企業、研究機関、団体・NPO が自ら公開した発表だけを集めています。報道機関の記事や論評は含みません。オフにした情報源は、すべてのタブとブリーフィングに表示されず、取り込みもしません。': 'We only collect announcements published directly by governments, companies, research institutes and organizations/NPOs. News media articles and commentary are not included. Sources you turn off are not fetched and do not appear in any tab or the briefing.',
-      '受け取る国・地域と、柱にする分野を選びます。選んだ分野がタブになります。選んだ地域の外の情報源は取り込みません。マイニュースとブリーフィングは関心トピックで選ぶため、分野に関係なく一致する発表を表示します。': 'Choose the countries and regions you want and the topics to focus on. The topics become tabs, and sources outside the chosen regions are not fetched. My News and the briefing are selected by interest topics, so they show matching announcements in any category.',
-      '国・地域': 'Countries & regions',
-      '分野': 'Topics',
-      '関心のあるトピックを登録すると、キーワードを含む記事と、説明に内容が近い記事を、関連度と新しさで並べて「マイニュース」に表示します。優先度が高いトピックほど上位に表示されます。': 'Register topics you care about and My News shows articles containing the keywords or close in meaning to the description, ordered by relevance and recency. Higher-priority topics rank higher.',
-      '＋ トピックを追加': '+ Add topic',
-      '新しいトピック': 'New topic',
-      '地域・分野、情報源、関心トピックを初期設定に戻し、最初の質問からやり直しますか？': 'Reset regions, topics, sources and interests to the defaults and start again from the first question?',
-      '地域と分野をそれぞれ1つ以上選んでください': 'Choose at least one region and one topic',
-      '情報源を1つ以上オンにしてください': 'Turn on at least one source',
-      '日本語のキーワード{n}件は英語表示では隠れていますが、そのまま使われます。編集するには日本語表示に切り替えてください。': '{n} Japanese keyword(s) are hidden in the English view but are still used. Switch to Japanese to edit them.',
-      // 情報源の名前
-      '首相官邸': 'Prime Minister’s Office (Japan)',
-      '総務省': 'Ministry of Internal Affairs and Communications (Japan)',
-      '米国務省': 'US Department of State',
-      '日本銀行': 'Bank of Japan',
-      '財務省': 'Ministry of Finance (Japan)',
-      '金融庁': 'Financial Services Agency (Japan)',
-      '厚生労働省': 'Ministry of Health, Labour and Welfare (Japan)',
-      '文部科学省': 'Ministry of Education, Culture, Sports, Science and Technology (Japan)',
-      '米CDC': 'US CDC',
-      '欧州委員会': 'European Commission',
-      '英国外務省': 'UK Foreign, Commonwealth & Development Office',
-      'デジタル庁': 'Digital Agency (Japan)',
-      'ウォータールー市': 'City of Waterloo',
-      'キッチナー市': 'City of Kitchener',
-      'ケンブリッジ市': 'City of Cambridge',
-      'ウォータールー・リージョン': 'Region of Waterloo',
-      'カナダ政府': 'Government of Canada',
-      'オンタリオ州政府': 'Government of Ontario',
-      'ジェトロ': 'JETRO',
-      'カナダ首相府': 'Prime Minister of Canada',
-      'カナダ銀行': 'Bank of Canada',
-      'カナダ統計局': 'Statistics Canada',
-      'トロント大学工学部': 'U of T Engineering',
-      '英国科学・イノベーション・技術省': 'UK Department for Science, Innovation and Technology',
-      '英国 AI Security Institute': 'UK AI Security Institute',
-      'イングランド銀行': 'Bank of England',
-      '全米科学財団': 'US National Science Foundation',
-      '欧州委員会（デジタル）': 'European Commission (Digital)',
-      '防衛省': 'Ministry of Defense (Japan)',
-      '米国防総省': 'US Department of Defense',
-      '全米芸術基金': 'National Endowment for the Arts',
-      'カーネギーメロン大学': 'Carnegie Mellon University',
-      '国立天文台': 'National Astronomical Observatory of Japan',
-      // 情報源の説明
-      '首相官邸 新着情報': 'Prime Minister’s Office: latest updates',
-      '総務省 報道資料': 'Ministry of Internal Affairs and Communications: press releases',
-      '日本銀行 新着情報': 'Bank of Japan: latest updates',
-      '財務省 新着情報': 'Ministry of Finance: latest updates',
-      '金融庁 新着情報': 'Financial Services Agency: latest updates',
-      '日本取引所グループ ニュース': 'Japan Exchange Group news',
-      'PR TIMES（企業の一次発表）': 'PR TIMES (company announcements)',
-      '@Press（企業の一次発表）': '@Press (company announcements)',
-      'PR Newswire 決算発表': 'PR Newswire earnings releases',
-      'PR Newswire 新着（M&A 専用ではなく全般。経済・投資・生成AIの記事だけ採用）': 'PR Newswire latest (general feed, not M&A-only; only economy, investment and generative AI items are used)',
-      'PR Newswire 一般ビジネス': 'PR Newswire general business',
-      'Cision Canada Venture Capital（企業の一次発表）': 'Cision Canada Venture Capital (company announcements)',
-      '年金積立金管理運用独立行政法人': 'Government Pension Investment Fund (Japan)',
-      'PR Newswire Venture Capital（企業の一次発表）': 'PR Newswire Venture Capital (company announcements)',
-      '厚生労働省 新着情報': 'Ministry of Health, Labour and Welfare: latest updates',
-      '文部科学省 新着情報': 'MEXT: latest updates',
-      'JETRO ビジネス短信': 'JETRO business briefs',
-      'デジタル庁 新着情報': 'Digital Agency: latest updates',
-      '科学技術振興機構 プレスリリース': 'Japan Science and Technology Agency press releases',
-      'Canada News Centre（全省庁）': 'Canada News Centre (all departments)',
-      'ジェトロ お知らせ・記者発表': 'JETRO announcements and press releases',
-      'CIFAR（カナダ先端研究機構）': 'CIFAR (Canadian Institute for Advanced Research)',
-      'Vector Institute（AI 研究所）': 'Vector Institute (AI research institute)',
-      'NIST（米国標準技術研究所）ニュース': 'NIST (US National Institute of Standards and Technology) news',
-      'NTIA（米商務省 電気通信情報庁）': 'NTIA (US National Telecommunications and Information Administration)',
-      'NSF（全米科学財団）ニュース': 'NSF (US National Science Foundation) news',
-      'Open Robotics（ROS を支える非営利団体）': 'Open Robotics (nonprofit behind ROS)',
-      '防衛省・自衛隊 新着情報': 'Ministry of Defense and Self-Defense Forces: latest updates',
-      'JPCERT/CC 注意喚起（サイバーセキュリティ）': 'JPCERT/CC alerts (cybersecurity)',
-      'CISA（米サイバーセキュリティ・インフラ安全保障庁）': 'CISA (US Cybersecurity and Infrastructure Security Agency)',
-      'Partnership on AI（AI の業界横断団体）': 'Partnership on AI (cross-industry AI organization)',
-      'Linux Foundation プレスリリース': 'Linux Foundation press releases',
-      'arXiv cs.RO（Physical AI 関連の新着論文）': 'arXiv cs.RO (new Physical AI papers)',
-      'Hugging Face Blog（オープンなAIモデルの公開）': 'Hugging Face Blog (open AI model releases)',
-      'Allen Institute for AI（非営利の AI 研究所）': 'Allen Institute for AI (nonprofit AI research institute)',
-      'MIT News（AI の研究成果）': 'MIT News (AI research)',
-      'CMU Robotics Institute（ロボティクス研究）': 'CMU Robotics Institute (robotics research)',
-      'MIT News（ロボティクス）': 'MIT News (robotics)',
-      'NVIDIA Newsroom（プレスリリース）': 'NVIDIA Newsroom (press releases)',
-      'NTT ドコモビジネス ニュースリリース': 'NTT Docomo Business news releases',
-      'Clearpath Robotics（キッチナーのロボット企業）': 'Clearpath Robotics (Kitchener robotics company)',
-      'Sanctuary AI（バンクーバーのヒューマノイド企業）': 'Sanctuary AI (Vancouver humanoid robotics company)',
-      'Fraunhofer（欧州最大の応用研究機関）': 'Fraunhofer (Europe’s largest applied research organization)',
-      'NASA ニュースリリース': 'NASA news releases',
-      '宇宙航空研究開発機構 プレスリリース': 'JAXA press releases',
-      '国立天文台 ニュース': 'National Astronomical Observatory of Japan news',
-      '高エネルギー加速器研究機構': 'KEK (High Energy Accelerator Research Organization)',
-      'カブリ数物連携宇宙研究機構（数学・物理）': 'Kavli IPMU (mathematics and physics)',
-      '欧州宇宙機関 宇宙科学': 'ESA space science',
-      '欧州分子生物学研究所': 'European Molecular Biology Laboratory',
-      'MIT News（研究成果）': 'MIT News (research)',
-      'クレイ数学研究所（ミレニアム懸賞問題）': 'Clay Mathematics Institute (Millennium Prize Problems)',
-      'Simons Foundation（数学・物理）': 'Simons Foundation (mathematics and physics)'
-    }
-  }
+  ja: { label: '日本語', locale: 'ja-JP', dir: 'ltr' },
+  en: { label: 'English', locale: 'en', dir: 'ltr' },
+  id: { label: 'Bahasa Indonesia', locale: 'id', dir: 'ltr' },
+  ms: { label: 'Bahasa Melayu', locale: 'ms', dir: 'ltr' },
+  th: { label: 'ไทย', locale: 'th', dir: 'ltr' },
+  vi: { label: 'Tiếng Việt', locale: 'vi', dir: 'ltr' },
+  fil: { label: 'Filipino', locale: 'fil', dir: 'ltr' },
+  'zh-Hans': { label: '简体中文', locale: 'zh-CN', dir: 'ltr' },
+  'zh-Hant': { label: '繁體中文', locale: 'zh-TW', dir: 'ltr' },
+  fr: { label: 'Français', locale: 'fr', dir: 'ltr' },
+  es: { label: 'Español', locale: 'es', dir: 'ltr' },
+  de: { label: 'Deutsch', locale: 'de', dir: 'ltr' },
+  pt: { label: 'Português', locale: 'pt', dir: 'ltr' }
 };
 
 const LANG_STORAGE_KEY = 'sivry:lang';
-const DEFAULT_LANG = 'ja';
+// 日本語は訳を持たない。それ以外の言語で訳が見つからないときは英語を使う
+const FALLBACK_LANG = 'en';
+const FALLBACK_DICTIONARIES = ['sources', FALLBACK_LANG];
 
-function readLang() {
+/** ブラウザの言語タグ（zh-TW、fil、tl など）を、対応する言語の記号にする。対応外なら null */
+function matchLanguage(tag) {
+  const lower = String(tag ?? '').toLowerCase();
+  const base = lower.split('-')[0];
+  if (base === 'zh') return /hant|-(tw|hk|mo)\b/.test(lower) ? 'zh-Hant' : 'zh-Hans';
+  const aliases = { tl: 'fil', in: 'id', nb: null, no: null };
+  const code = base in aliases ? aliases[base] : base;
+  return code && LANGUAGES[code] ? code : null;
+}
+
+/** 保存した選択がなければ、ブラウザの言語設定から決める。どれも対応外なら英語 */
+function detectLanguage() {
   try {
     const saved = localStorage.getItem(LANG_STORAGE_KEY);
     if (saved && LANGUAGES[saved]) return saved;
   } catch {
-    // 保存データが読めなくても既定の言語で動作する
+    // 保存データが読めなくても、ブラウザの言語設定で動作する
   }
-  return DEFAULT_LANG;
+  for (const tag of navigator.languages?.length ? navigator.languages : [navigator.language]) {
+    const code = matchLanguage(tag);
+    if (code) return code;
+  }
+  return FALLBACK_LANG;
 }
 
-let currentLang = readLang();
+let currentLang = detectLanguage();
+const dictionaries = {};
+const pluralRules = {};
+
+async function loadDictionary(name) {
+  if (dictionaries[name]) return;
+  try {
+    // 相対パスにしておく（GitHub Pages のようにサイトが下位のパスにあっても読めるように）
+    const response = await fetch(`locales/${name}.json`);
+    dictionaries[name] = response.ok ? await response.json() : {};
+  } catch {
+    dictionaries[name] = {};
+  }
+}
+
+async function loadMessages(lang) {
+  await Promise.all([...new Set([...FALLBACK_DICTIONARIES, ...(lang === 'ja' ? [] : [lang])])].map(loadDictionary));
+}
 
 function getLang() {
   return currentLang;
 }
 
-function setLang(lang) {
+async function setLang(lang) {
   if (!LANGUAGES[lang]) return;
   try {
     localStorage.setItem(LANG_STORAGE_KEY, lang);
   } catch {
     // 保存できない場合、今回の表示だけ切り替わる
   }
+  await loadMessages(lang);
   currentLang = lang;
+  applyStaticTranslations();
 }
 
+/** 日付・数値の書式に使うロケール。端末の設定が同じ言語なら、地域まで含めてそのまま使う（fr-CA、en-GB など） */
 function locale() {
+  const preferred = navigator.language;
+  if (preferred && preferred.includes('-') && matchLanguage(preferred) === currentLang) {
+    try {
+      if (Intl.DateTimeFormat.supportedLocalesOf([preferred]).length) return preferred;
+    } catch {
+      // 不正な言語タグなら既定のロケールを使う
+    }
+  }
   return LANGUAGES[currentLang].locale;
 }
 
-/** 日本語の文言（キー）を現在の言語に直す。訳がなければ日本語のまま使う */
+function pluralCategory(params) {
+  const count = Number(params?.count ?? params?.n);
+  if (!Number.isFinite(count)) return 'other';
+  pluralRules[currentLang] ??= new Intl.PluralRules(locale());
+  return pluralRules[currentLang].select(count);
+}
+
+function lookup(key) {
+  if (currentLang !== 'ja') {
+    for (const name of [currentLang, ...FALLBACK_DICTIONARIES]) {
+      const message = dictionaries[name]?.[key];
+      if (message !== undefined) return message;
+    }
+  }
+  return key;
+}
+
+/** 日本語の文言（キー）を現在の言語に直す。訳がなければ英語、それもなければ日本語のまま使う */
 function t(key, params) {
-  const text = LANGUAGES[currentLang].messages[key] ?? key;
-  return params ? text.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match)) : text;
+  let message = lookup(key);
+  if (message !== null && typeof message === 'object') message = message[pluralCategory(params)] ?? message.other ?? key;
+  return params ? message.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match)) : message;
+}
+
+/** 「5分前」のような相対時間。言語ごとの語順・省略形は Intl に任せる */
+function formatAgo(unit, amount) {
+  const style = currentLang === 'ja' ? 'narrow' : 'short';
+  return new Intl.RelativeTimeFormat(locale(), { style }).format(-amount, unit);
+}
+
+/** 並べて表示する語の区切り（、 / , など）は言語に合わせる */
+function formatList(items) {
+  return new Intl.ListFormat(locale(), { style: 'narrow', type: 'conjunction' }).format(items);
 }
 
 /** index.html の data-i18n（本文）・data-i18n-aria（aria-label）・data-i18n-placeholder を現在の言語にする */
 function applyStaticTranslations() {
-  document.documentElement.lang = currentLang;
+  document.documentElement.lang = LANGUAGES[currentLang].locale;
+  document.documentElement.dir = LANGUAGES[currentLang].dir;
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)); });
 }
 
-applyStaticTranslations();
+// 訳の読み込みが終わってから描画を始められるよう、app.js はこれを待つ
+const i18nReady = loadMessages(currentLang).then(applyStaticTranslations);

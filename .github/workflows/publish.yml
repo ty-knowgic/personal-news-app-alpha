@@ -34,6 +34,7 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm run check:locales
 
       # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
       - uses: actions/cache/restore@v4

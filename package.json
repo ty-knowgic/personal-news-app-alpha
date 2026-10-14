@@ -9,7 +9,8 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "audit": "node scripts/audit.mjs",
     "build:site": "node scripts/build-static.mjs",
-    "export": "tsx --env-file-if-exists=.env scripts/export-data.ts"
+    "export": "tsx --env-file-if-exists=.env scripts/export-data.ts",
+    "check:locales": "node scripts/check-locales.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",

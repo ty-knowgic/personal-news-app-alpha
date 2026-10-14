@@ -1786,3 +1786,9 @@ body.is-onboarding .appbar { display: none; }
 .settings-language .settings-subtitle { margin-top: 8px; }
 .settings-language .segmented { grid-template-columns: repeat(2, 1fr); max-width: 320px; }
 .settings-language .settings-note { margin: 10px 0 4px; }
+
+.field-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}

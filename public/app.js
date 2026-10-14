@@ -275,7 +275,7 @@ function matchChips(item) {
 function relatedLine(item) {
   const related = item.related ?? [];
   if (!related.length) return '';
-  const others = [...new Set(related.map(r => r.sourceName).filter(name => name !== item.sourceName))];
+  const others = [...new Set(related.map(r => t(r.sourceName)).filter(name => name !== t(item.sourceName)))];
   const sources = others.length ? `${others.slice(0, 2).join('・')}${others.length > 2 ? t(' など') : ''}` : t('同じ発信元の続報');
   return `<div class="related-line">${ICONS.stack}<span class="related-count">${escapeHtml(t('関連 {n}件', { n: related.length }))}</span><span class="related-sources">${escapeHtml(sources)}</span></div>`;
 }
@@ -305,7 +305,7 @@ function renderBriefing(briefing) {
               <span class="briefing-body">
                 <span class="briefing-item-title">${escapeHtml(story.title)}</span>
                 ${story.line ? `<span class="briefing-line">${escapeHtml(story.line)}</span>` : ''}
-                <span class="briefing-meta">${escapeHtml(story.sourceName)}${story.related?.length ? escapeHtml(t(' ほか{n}件', { n: story.related.length })) : ''} · ${escapeHtml(formatRelative(story.publishedAt))}${matchChips(story)}</span>
+                <span class="briefing-meta">${escapeHtml(t(story.sourceName))}${story.related?.length ? escapeHtml(t(' ほか{n}件', { n: story.related.length })) : ''} · ${escapeHtml(formatRelative(story.publishedAt))}${matchChips(story)}</span>
               </span>
             </a>
           </li>`).join('')}
@@ -337,7 +337,7 @@ function renderHero(item) {
         <span class="cat-pill">${escapeHtml(t(category))}・${escapeHtml(t(item.subgroup))}</span>
         <h2 class="hero-title">${escapeHtml(displayTitle(item))}</h2>
         ${summary ? `<p class="hero-summary">${escapeHtml(summary)}</p>` : ''}
-        <div class="hero-meta">${escapeHtml(item.sourceName)} · ${escapeHtml(formatRelative(item.publishedAt))}${item.matches?.length ? ` · ${escapeHtml(item.matches.map(m => t(m.label)).join('・'))}` : ''}</div>
+        <div class="hero-meta">${escapeHtml(t(item.sourceName))} · ${escapeHtml(formatRelative(item.publishedAt))}${item.matches?.length ? ` · ${escapeHtml(item.matches.map(m => t(m.label)).join('・'))}` : ''}</div>
       </div>
     </a>
   `;
@@ -347,8 +347,8 @@ function renderCard(item) {
   const category = primaryCategory(item);
   const image = safeUrl(item.imageUrl);
   const media = image
-    ? `<img class="thumb" src="${escapeHtml(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; aria-hidden=&quot;true&quot;>${escapeHtml(escapeHtml(sourceInitials(item.sourceName)))}</div>'">`
-    : `<div class="thumb-placeholder" aria-hidden="true">${escapeHtml(sourceInitials(item.sourceName))}</div>`;
+    ? `<img class="thumb" src="${escapeHtml(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; aria-hidden=&quot;true&quot;>${escapeHtml(escapeHtml(sourceInitials(t(item.sourceName))))}</div>'">`
+    : `<div class="thumb-placeholder" aria-hidden="true">${escapeHtml(sourceInitials(t(item.sourceName)))}</div>`;
 
   return `
     <a class="card" href="#/article/${encodeURIComponent(item.id)}" data-id="${escapeHtml(item.id)}" data-cat="${escapeHtml(category)}">
@@ -356,7 +356,7 @@ function renderCard(item) {
         <div class="card-meta">
           <span class="cat-label">${item.isSample ? escapeHtml(t('サンプル')) : `${escapeHtml(t(category))}・${escapeHtml(t(item.subgroup))}`}</span>
           <span class="sep" aria-hidden="true"></span>
-          <span class="source">${escapeHtml(item.sourceName)}</span>
+          <span class="source">${escapeHtml(t(item.sourceName))}</span>
           ${typeBadge(item.sourceType) ? `<span class="source-badge">${escapeHtml(typeBadge(item.sourceType))}</span>` : ''}
         </div>
         <h3 class="card-title">${escapeHtml(displayTitle(item))}</h3>
@@ -652,7 +652,7 @@ function renderRelated(related) {
         ${related.map(r => `
           <li>
             <a href="#/article/${encodeURIComponent(r.id)}">
-              <span class="related-source">${escapeHtml(r.sourceName)}${typeBadge(r.sourceType) ? `<span class="source-badge">${escapeHtml(typeBadge(r.sourceType))}</span>` : ''} · ${escapeHtml(formatRelative(r.publishedAt))}</span>
+              <span class="related-source">${escapeHtml(t(r.sourceName))}${typeBadge(r.sourceType) ? `<span class="source-badge">${escapeHtml(typeBadge(r.sourceType))}</span>` : ''} · ${escapeHtml(formatRelative(r.publishedAt))}</span>
               <span class="related-item-title">${escapeHtml(r.title)}</span>
             </a>
           </li>`).join('')}
@@ -683,9 +683,9 @@ function renderDetail() {
     <h1 class="detail-title">${escapeHtml(headline)}</h1>
     ${showOriginal ? `<p class="detail-original" lang="en">${escapeHtml(t('原題: {title}', { title: item.title }))}</p>` : ''}
     <div class="byline" data-cat="${escapeHtml(category)}">
-      <span class="byline-avatar" aria-hidden="true">${escapeHtml(sourceInitials(item.sourceName))}</span>
+      <span class="byline-avatar" aria-hidden="true">${escapeHtml(sourceInitials(t(item.sourceName)))}</span>
       <span class="byline-text">
-        <strong>${escapeHtml(item.sourceName)}</strong>
+        <strong>${escapeHtml(t(item.sourceName))}</strong>
         <time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatDateTime(item.publishedAt))}</time>
       </span>
     </div>
@@ -699,7 +699,7 @@ function renderDetail() {
     ${sourceUrl ? `
       <div class="read-bar">
         <a class="read-button" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">
-          ${escapeHtml(t('元記事を読む（{source}）', { source: item.sourceName }))}${ICONS.external}
+          ${escapeHtml(t('元記事を読む（{source}）', { source: t(item.sourceName) }))}${ICONS.external}
         </a>
       </div>` : ''}
   `;
@@ -1012,13 +1012,30 @@ function splitKeywords(text) {
   return [...new Set(text.split(/[\n,、]/).map(word => word.trim()).filter(Boolean))];
 }
 
+// 初期設定のトピック（内容は日本語と英語の併記）。英語表示では英語の部分だけを見せる
+const DEFAULT_TOPIC_IDS = new Set(['local', 'ontario', 'genai', 'physical-ai', 'japan-canada', 'us-eu-tech-policy', 'math', 'bizdev']);
+const hasJapanese = text => /[ぁ-んァ-ヶ一-龠]/.test(text);
+
+/** 「日本語の説明。English description.」の形の説明文を、日本語の部分と英語の部分に分ける */
+function splitDescription(description) {
+  const match = /^([\s\S]*?。)\s*([A-Za-z][\s\S]*)$/.exec(description ?? '');
+  return match ? { ja: match[1], en: match[2] } : null;
+}
+
 function renderTopicEditor(topic, index) {
   const weight = nearestWeight(topic.weight);
+  // 英語表示では表示だけを英語にし、保存済みの値は編集されない限り変えない（collectSettings を参照）
+  const translated = getLang() !== 'ja' && DEFAULT_TOPIC_IDS.has(topic.id);
+  const parts = translated ? splitDescription(topic.description) : null;
+  const descriptionShown = parts ? parts.en : (topic.description ?? '');
+  const hiddenKeywords = translated ? topic.keywords.filter(hasJapanese) : [];
+  const keywordsShown = topic.keywords.filter(keyword => !hiddenKeywords.includes(keyword));
+  const labelShown = t(topic.label);
   const conditions = [
     topic.alsoRequires?.length ? t('さらに「{words}{more}」のいずれかを含む', { words: topic.alsoRequires.slice(0, 4).join('・'), more: topic.alsoRequires.length > 4 ? '…' : '' }) : '',
     topic.regions?.length ? t('地域: {value}', { value: topic.regions.map(region => t(region)).join('・') }) : '',
     topic.sourceTypes?.length ? t('発信元: {value}', { value: topic.sourceTypes.map(typeLabel).join('・') }) : '',
-    topic.sources?.length ? t('常に対象: {value}', { value: topic.sources.join('・') }) : '',
+    topic.sources?.length ? t('常に対象: {value}', { value: topic.sources.map(name => t(name)).join('・') }) : '',
     topic.boostOnly ? t('単独では表示せず、他の関心と重なる記事を上位にする') : ''
   ].filter(Boolean);
 
@@ -1030,7 +1047,7 @@ function renderTopicEditor(topic, index) {
           <span class="switch-track" aria-hidden="true"></span>
           <span class="visually-hidden">${escapeHtml(t('有効'))}</span>
         </label>
-        <input class="topic-label" data-field="label" value="${escapeHtml(topic.label)}" maxlength="40" aria-label="${escapeHtml(t('トピック名'))}">
+        <input class="topic-label" data-field="label" value="${escapeHtml(labelShown)}" data-shown="${escapeHtml(labelShown)}" maxlength="40" aria-label="${escapeHtml(t('トピック名'))}">
         <button class="icon-button topic-delete" type="button" data-action="delete-topic" aria-label="${escapeHtml(t('このトピックを削除'))}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>
         </button>
@@ -1044,11 +1061,12 @@ function renderTopicEditor(topic, index) {
       </div>
       <label class="field">
         <span>${escapeHtml(t('説明（内容の近さで探します。キーワードを含まない記事も対象になります。空欄ならキーワードだけで判定）'))}</span>
-        <textarea data-field="description" rows="3" maxlength="600" placeholder="${escapeHtml(t('読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです'))}">${escapeHtml(topic.description ?? '')}</textarea>
+        <textarea data-field="description" rows="3" maxlength="600" ${parts ? `data-ja="${escapeHtml(parts.ja)}" data-shown="${escapeHtml(descriptionShown)}"` : ''} placeholder="${escapeHtml(t('読みたい記事の内容を文章で（例: 人型ロボットやロボット学習の研究と事業化）。地名は文章よりキーワード向きです'))}">${escapeHtml(descriptionShown)}</textarea>
       </label>
       <label class="field">
         <span>${escapeHtml(t('キーワード（改行またはカンマ区切り。日本語・英語のどちらでも）'))}</span>
-        <textarea data-field="keywords" rows="3">${escapeHtml(topic.keywords.join(', '))}</textarea>
+        <textarea data-field="keywords" rows="3" data-shown="${escapeHtml(keywordsShown.join(', '))}" data-hidden="${escapeHtml(JSON.stringify(hiddenKeywords))}">${escapeHtml(keywordsShown.join(', '))}</textarea>
+        ${hiddenKeywords.length ? `<small class="field-note">${escapeHtml(t('日本語のキーワード{n}件は英語表示では隠れていますが、そのまま使われます。編集するには日本語表示に切り替えてください。', { n: hiddenKeywords.length }))}</small>` : ''}
       </label>
       ${conditions.length ? `<p class="topic-conditions">${conditions.map(escapeHtml).join('<br>')}</p>` : ''}
     </section>
@@ -1078,7 +1096,7 @@ function isSourceEnabled(source) {
 function renderSourceRow(source) {
   const enabled = isSourceEnabled(source);
   const outOfRegion = isOutOfRegion(source);
-  const details = [source.label !== source.sourceName ? source.label : '', t(source.subgroup), source.categories.map(category => t(category)).join('・'), outOfRegion ? t('選んだ地域の対象外') : t('30日で{n}件', { n: source.count })].filter(Boolean);
+  const details = [t(source.label) !== t(source.sourceName) ? t(source.label) : '', t(source.subgroup), source.categories.map(category => t(category)).join('・'), outOfRegion ? t('選んだ地域の対象外') : t('30日で{n}件', { n: source.count })].filter(Boolean);
   // 直近の取得に失敗した情報源（発信元のサイトの変更や、アクセスの制限など）
   const failing = !outOfRegion && source.health && !source.health.ok;
   const url = safeUrl(source.sourceUrl);
@@ -1087,14 +1105,14 @@ function renderSourceRow(source) {
       <label class="switch">
         <input type="checkbox" data-source="${escapeHtml(source.id)}" ${enabled ? 'checked' : ''} ${outOfRegion ? 'disabled' : ''}>
         <span class="switch-track" aria-hidden="true"></span>
-        <span class="visually-hidden">${escapeHtml(t('{name}を使う', { name: source.label }))}</span>
+        <span class="visually-hidden">${escapeHtml(t('{name}を使う', { name: t(source.label) }))}</span>
       </label>
       <div class="source-meta">
-        <span class="source-name">${escapeHtml(source.sourceName)}</span>
+        <span class="source-name">${escapeHtml(t(source.sourceName))}</span>
         <span class="source-desc">${details.map(escapeHtml).join(' · ')}</span>
         ${failing ? `<span class="source-error">${escapeHtml(t('取得できていません（発信元のサイトの変更またはアクセス制限）'))}</span>` : ''}
       </div>
-      ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(t('{name}のサイトを開く', { name: source.sourceName }))}">
+      ${url ? `<a class="source-link icon-button" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(t('{name}のサイトを開く', { name: t(source.sourceName) }))}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
       </a>` : ''}
     </li>
@@ -1188,10 +1206,24 @@ function collectSettings() {
   settingsView.querySelectorAll('.topic-editor').forEach((editor) => {
     const topic = profileDraft.topics[Number(editor.dataset.index)];
     topic.enabled = editor.querySelector('[data-field="enabled"]').checked;
-    topic.label = editor.querySelector('[data-field="label"]').value.trim() || topic.label;
+    // 表示用に翻訳した値のままなら、保存済みの値を変えない
+    const labelInput = editor.querySelector('[data-field="label"]');
+    const label = labelInput.value.trim();
+    if (label && label !== labelInput.dataset.shown) topic.label = label;
     topic.weight = Number(editor.querySelector('[data-field="weight"]:checked')?.value ?? topic.weight);
-    topic.keywords = splitKeywords(editor.querySelector('[data-field="keywords"]').value);
-    topic.description = editor.querySelector('[data-field="description"]').value.trim();
+    const keywordsInput = editor.querySelector('[data-field="keywords"]');
+    if (keywordsInput.dataset.hidden === '[]' || keywordsInput.value.trim() !== keywordsInput.dataset.shown) {
+      const hidden = JSON.parse(keywordsInput.dataset.hidden || '[]');
+      topic.keywords = [...new Set([...splitKeywords(keywordsInput.value), ...hidden])];
+    }
+    const descriptionInput = editor.querySelector('[data-field="description"]');
+    const description = descriptionInput.value.trim();
+    if (descriptionInput.dataset.ja === undefined) {
+      if (description !== (topic.description ?? '')) topic.description = description;
+    } else if (description !== descriptionInput.dataset.shown) {
+      // 英語の部分だけを編集した場合は、日本語の部分を残して組み合わせる
+      topic.description = description ? `${descriptionInput.dataset.ja} ${description}` : descriptionInput.dataset.ja;
+    }
   });
 }
 

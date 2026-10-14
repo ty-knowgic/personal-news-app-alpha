@@ -143,7 +143,7 @@ const LANGUAGES = {
       'どの分野を柱にしますか？': 'Which topics should be your main focus?',
       '政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。': 'We collect primary information published directly by governments, companies, research institutes and organizations. News media articles are not included.',
       '選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。': 'The topics you choose become tabs. My News shows announcements that match your interest topics, whatever their category.',
-      '複数選べます。': 'You can choose several.',
+      '複数選べます。': ' You can choose several.',
       'すべて解除': 'Clear all',
       'すべて選択': 'Select all',
       '次へ': 'Next',

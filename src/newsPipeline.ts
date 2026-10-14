@@ -282,8 +282,9 @@ function isRoutine(title: string): boolean {
 
 // 企業の発表を装った法律事務所の集団訴訟勧誘などは、企業活動の情報ではないため除外する
 // ウェビナー・セミナーの告知も、企業活動そのものの情報ではないため除外する
+// セール・割引・キャンペーン・プレゼントなど、販売促進の告知も除外する
 // 「生成AIが選ぶ◯◯、1位は…（言及率）」のような、AI 検索向けの広告を兼ねた順位調査も除外する
-const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率|LLMO|AIO対策|AI検索対策|交流会/i;
+const PROMOTIONAL_NOISE = /class action|shareholder alert|investor alert|securities fraud|reminds? (investors|shareholders)|lead plaintiff|on behalf of (investors|shareholders)|investors? who (lost|purchased)|have opportunity to lead|ウェビナー|オンラインセミナー|セミナー(を|の)?(開催|申込)|\bwebinar\b|(生成AI|AI|ChatGPT)が(選ぶ|推薦する|おすすめする)|言及率|LLMO|AIO対策|AI検索対策|交流会|セール|割引|クーポン|キャンペーン|プレゼント|先着|抽選で|感謝祭|[\d０-９]+\s?[%％]\s?OFF|\b(on sale|sale ends|discount(ed)?|coupon|promo code|giveaway|limited[- ]time offer|pre-?order|\d+% off|weekly investor update)\b|\bsale\b/i;
 
 /** PR TIMES などの説明文に含まれる「[画像: URL]」や、先頭の「[会社名]」を取り除く */
 function trimSummary(value: string): string {

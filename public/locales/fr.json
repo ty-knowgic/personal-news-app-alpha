@@ -82,7 +82,10 @@
     "one": "{n} lié",
     "other": "{n} liés"
   },
-  " ほか{n}件": " +{n} autre(s)",
+  " ほか{n}件": {
+    "one": " +{n} autre",
+    "other": " +{n} autres"
+  },
   "サンプル": "Exemple",
   "公式フィードを取得できなかったため、サンプルを表示しています": "Les flux officiels sont inaccessibles ; des exemples sont affichés",
   "{n}件": {

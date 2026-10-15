@@ -17,6 +17,7 @@ export function filterNews(allItems: NewsItem[], filters: NewsFilters, sourceIdO
     const byCategory = filters.category ? item.categories.includes(filters.category as CategoryKey) : true;
     const bySubgroup = filters.subgroup ? item.subgroup === filters.subgroup : true;
     const bySourceType = filters.sourceType ? item.sourceType === filters.sourceType : true;
+    if (filters.hiddenItems?.size && filters.hiddenItems.has(item.id)) return false;
     if (filters.excludedSources?.size && filters.excludedSources.has(sourceIdOf(item.feedUrl))) return false;
     if (filters.regions?.length && !filters.regions.includes(item.subgroup)) return false;
     if (filters.categories?.length && !item.categories.some(category => filters.categories!.includes(category))) return false;

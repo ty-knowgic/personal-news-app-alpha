@@ -210,5 +210,31 @@
   "要約の作成に失敗しました。": "Não foi possível criar o resumo.",
   "サンプル記事は要約できません。": "Artigos de exemplo não podem ser resumidos.",
   "データを読み込めませんでした。通信状況を確認してください。": "Não foi possível carregar os dados. Verifique sua conexão.",
-  "言語を選ぶ": "Escolher idioma"
+  "言語を選ぶ": "Escolher idioma",
+  "この記事を非表示": "Ocultar este artigo",
+  "{source}をマイニュースに追加": "Adicionar {source} a Minhas notícias",
+  "{source}をオフにする": "Desativar {source}",
+  "非表示にしました": "Artigo ocultado",
+  "元に戻す": "Desfazer",
+  "マイニュースに追加しました。設定の「関心トピック」で編集できます。": "Adicionado a Minhas notícias. Você pode editar em “Interesses”, nos Ajustes.",
+  "すでにマイニュースに追加されています": "Já está em Minhas notícias",
+  "{source}をオフにしました。設定の「情報源」でオンに戻せます。": "Fonte desativada: {source}. Você pode reativá-la em “Fontes”, nos Ajustes.",
+  "設定の持ち運び": "Transferir seus ajustes",
+  "保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。": "Copie seus ajustes salvos (regiões, temas, fontes, interesses e artigos ocultos) e cole em outro dispositivo. Nada é guardado em uma conta nem em um servidor.",
+  "設定をコピー": "Copiar ajustes",
+  "設定を貼り付け": "Colar ajustes",
+  "コピーした設定をここに貼り付けます": "Cole aqui os ajustes copiados",
+  "読み込む": "Carregar",
+  "非表示にした記事 {n}件": {
+    "one": "{n} artigo oculto",
+    "other": "{n} artigos ocultos"
+  },
+  "すべて元に戻す": "Restaurar tudo",
+  "ご意見・情報源のリクエスト": "Feedback e pedidos de fontes",
+  "GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。": "Publicado na página pública de Issues do GitHub. É necessária uma conta do GitHub.",
+  "ご意見を送る": "Enviar feedback",
+  "情報源をリクエスト": "Pedir uma fonte",
+  "設定をコピーしました": "Ajustes copiados",
+  "設定を読み込みました": "Ajustes carregados",
+  "設定の形式が正しくありません": "O formato dos ajustes é inválido"
 }

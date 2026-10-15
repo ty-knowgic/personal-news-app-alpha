@@ -45,7 +45,9 @@ export const ProfileSchema = z.object({
   categories: z.array(z.string().max(20)).max(30).default([]),
   topics: z.array(TopicSchema).max(30),
   /** 使わない情報源の ID（すべてのタブ・ブリーフィングから除き、誰も使わない情報源は取り込まない） */
-  excludedSources: z.array(z.string().regex(/^[0-9a-f]{10}$/)).max(500).default([])
+  excludedSources: z.array(z.string().regex(/^[0-9a-f]{10}$/)).max(500).default([]),
+  /** 「この記事を非表示」にした記事の ID（新しいものが後ろ。古いものから外れる） */
+  hiddenItems: z.array(z.string().regex(/^[0-9a-f]{16}$/)).max(300).default([])
 });
 
 export type Profile = z.infer<typeof ProfileSchema>;
@@ -58,6 +60,7 @@ export const DEFAULT_PROFILE: Profile = {
   regions: [],
   categories: [],
   excludedSources: [],
+  hiddenItems: [],
   topics: [
     {
       id: 'local', label: 'ウォータールー周辺', enabled: true, weight: 1, sourceTypes: [], regions: [], alsoRequires: [], alsoRequiresRegions: [], sources: ['ウォータールー市', 'キッチナー市', 'ケンブリッジ市', 'ウォータールー・リージョン'], boostOnly: false,

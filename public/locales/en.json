@@ -215,5 +215,31 @@
   "要約の作成に失敗しました。": "Could not create the summary.",
   "サンプル記事は要約できません。": "Sample articles cannot be summarized.",
   "データを読み込めませんでした。通信状況を確認してください。": "Could not load the data. Please check your connection.",
-  "言語を選ぶ": "Choose a language"
+  "言語を選ぶ": "Choose a language",
+  "この記事を非表示": "Hide this article",
+  "{source}をマイニュースに追加": "Add {source} to My News",
+  "{source}をオフにする": "Turn off {source}",
+  "非表示にしました": "Article hidden",
+  "元に戻す": "Undo",
+  "マイニュースに追加しました。設定の「関心トピック」で編集できます。": "Added to My News. You can edit it under “Interests” in Settings.",
+  "すでにマイニュースに追加されています": "Already in My News",
+  "{source}をオフにしました。設定の「情報源」でオンに戻せます。": "{source} turned off. You can turn it back on under “Sources” in Settings.",
+  "設定の持ち運び": "Move your settings",
+  "保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。": "Copy your saved settings (regions, topics, sources, interests and hidden articles) and paste them on another device. Nothing is stored in an account or on a server.",
+  "設定をコピー": "Copy settings",
+  "設定を貼り付け": "Paste settings",
+  "コピーした設定をここに貼り付けます": "Paste the copied settings here",
+  "読み込む": "Load",
+  "非表示にした記事 {n}件": {
+    "one": "{n} hidden article",
+    "other": "{n} hidden articles"
+  },
+  "すべて元に戻す": "Restore all",
+  "ご意見・情報源のリクエスト": "Feedback & source requests",
+  "GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。": "Posted on GitHub’s public Issues page. A GitHub account is required.",
+  "ご意見を送る": "Send feedback",
+  "情報源をリクエスト": "Request a source",
+  "設定をコピーしました": "Settings copied",
+  "設定を読み込みました": "Settings loaded",
+  "設定の形式が正しくありません": "The settings format is not valid"
 }

@@ -1819,3 +1819,69 @@ html:lang(vi) body { line-height: 1.6; }
 
 .onb-language { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .onb-language .language-select { width: auto; max-width: 100%; }
+
+/* ---------- 記事の操作（非表示・発信元）と設定の持ち運び ---------- */
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 96px;
+}
+
+.detail-actions .secondary-button {
+  height: auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.toast-action {
+  margin-left: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.settings-extra {
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.extra-actions .secondary-button,
+.paste-box .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  height: auto;
+  min-height: 44px;
+  padding: 8px 16px;
+  text-decoration: none;
+}
+
+.paste-box { margin-top: 10px; }
+.paste-box textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}

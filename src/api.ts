@@ -90,7 +90,7 @@ function groupForDisplay<T extends NewsItem & { score?: number }>(ctx: ApiContex
  * （例: 「社会」を選んでいなくても、関心トピック「ウォータールー周辺」に一致する市の発表は表示する）
  */
 export function scopeOf(profile: Profile, forYou = false) {
-  return { excludedSources: new Set(profile.excludedSources), regions: profile.regions, categories: forYou ? [] : profile.categories };
+  return { excludedSources: new Set(profile.excludedSources), hiddenItems: new Set(profile.hiddenItems), regions: profile.regions, categories: forYou ? [] : profile.categories };
 }
 
 /** 利用者の対象範囲（地域・情報源、マイニュース以外では分野も）に含まれる、蓄積中の全記事 */

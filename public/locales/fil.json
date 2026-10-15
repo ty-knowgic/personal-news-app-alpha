@@ -189,5 +189,31 @@
   "要約の作成に失敗しました。": "Hindi magawa ang buod.",
   "サンプル記事は要約できません。": "Hindi maaaring gawan ng buod ang mga halimbawang artikulo.",
   "データを読み込めませんでした。通信状況を確認してください。": "Hindi ma-load ang data. Pakitingnan ang iyong koneksyon.",
-  "言語を選ぶ": "Pumili ng wika"
+  "言語を選ぶ": "Pumili ng wika",
+  "この記事を非表示": "Itago ang artikulong ito",
+  "{source}をマイニュースに追加": "Idagdag ang {source} sa Aking Balita",
+  "{source}をオフにする": "I-off ang {source}",
+  "非表示にしました": "Itinago ang artikulo",
+  "元に戻す": "I-undo",
+  "マイニュースに追加しました。設定の「関心トピック」で編集できます。": "Naidagdag sa Aking Balita. Maaari mo itong i-edit sa “Mga interes” sa Mga Setting.",
+  "すでにマイニュースに追加されています": "Nasa Aking Balita na",
+  "{source}をオフにしました。設定の「情報源」でオンに戻せます。": "Na-off ang {source}. Maaari mo itong i-on muli sa “Mga pinagmulan” sa Mga Setting.",
+  "設定の持ち運び": "Ilipat ang iyong mga setting",
+  "保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。": "Kopyahin ang mga naka-save na setting (mga rehiyon, paksa, pinagmulan, interes, at mga itinagong artikulo) at i-paste sa ibang device. Walang itinatago sa account o sa server.",
+  "設定をコピー": "Kopyahin ang mga setting",
+  "設定を貼り付け": "I-paste ang mga setting",
+  "コピーした設定をここに貼り付けます": "I-paste dito ang kinopyang mga setting",
+  "読み込む": "I-load",
+  "非表示にした記事 {n}件": {
+    "one": "{n} itinagong artikulo",
+    "other": "{n} itinagong artikulo"
+  },
+  "すべて元に戻す": "Ibalik lahat",
+  "ご意見・情報源のリクエスト": "Feedback at kahilingan ng pinagmulan",
+  "GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。": "Ipo-post sa pampublikong Issues page ng GitHub. Kailangan ng GitHub account.",
+  "ご意見を送る": "Magpadala ng feedback",
+  "情報源をリクエスト": "Humiling ng pinagmulan",
+  "設定をコピーしました": "Nakopya ang mga setting",
+  "設定を読み込みました": "Na-load ang mga setting",
+  "設定の形式が正しくありません": "Hindi wasto ang format ng mga setting"
 }

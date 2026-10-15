@@ -66,6 +66,8 @@ export interface NewsFilters {
   categories?: string[];
   /** 利用者がオフにした情報源の ID */
   excludedSources?: Set<string>;
+  /** 利用者が非表示にした記事の ID */
+  hiddenItems?: Set<string>;
 }
 
 export interface ArticleContent {

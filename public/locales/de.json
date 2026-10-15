@@ -210,5 +210,31 @@
   "要約の作成に失敗しました。": "Die Zusammenfassung konnte nicht erstellt werden.",
   "サンプル記事は要約できません。": "Beispielartikel können nicht zusammengefasst werden.",
   "データを読み込めませんでした。通信状況を確認してください。": "Die Daten konnten nicht geladen werden. Bitte prüfen Sie Ihre Verbindung.",
-  "言語を選ぶ": "Sprache wählen"
+  "言語を選ぶ": "Sprache wählen",
+  "この記事を非表示": "Diesen Artikel ausblenden",
+  "{source}をマイニュースに追加": "{source} zu „Meine News“ hinzufügen",
+  "{source}をオフにする": "{source} ausschalten",
+  "非表示にしました": "Artikel ausgeblendet",
+  "元に戻す": "Rückgängig",
+  "マイニュースに追加しました。設定の「関心トピック」で編集できます。": "Zu „Meine News“ hinzugefügt. Sie können es in den Einstellungen unter „Interessen“ bearbeiten.",
+  "すでにマイニュースに追加されています": "Bereits in „Meine News“",
+  "{source}をオフにしました。設定の「情報源」でオンに戻せます。": "{source} ausgeschaltet. Sie können es in den Einstellungen unter „Quellen“ wieder einschalten.",
+  "設定の持ち運び": "Einstellungen übertragen",
+  "保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。": "Kopieren Sie Ihre gespeicherten Einstellungen (Regionen, Themen, Quellen, Interessen und ausgeblendete Artikel) und fügen Sie sie auf einem anderen Gerät ein. Es wird nichts in einem Konto oder auf einem Server gespeichert.",
+  "設定をコピー": "Einstellungen kopieren",
+  "設定を貼り付け": "Einstellungen einfügen",
+  "コピーした設定をここに貼り付けます": "Kopierte Einstellungen hier einfügen",
+  "読み込む": "Laden",
+  "非表示にした記事 {n}件": {
+    "one": "{n} ausgeblendeter Artikel",
+    "other": "{n} ausgeblendete Artikel"
+  },
+  "すべて元に戻す": "Alle wiederherstellen",
+  "ご意見・情報源のリクエスト": "Feedback und Quellenwünsche",
+  "GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。": "Wird auf der öffentlichen Issues-Seite von GitHub veröffentlicht. Ein GitHub-Konto ist erforderlich.",
+  "ご意見を送る": "Feedback senden",
+  "情報源をリクエスト": "Quelle vorschlagen",
+  "設定をコピーしました": "Einstellungen kopiert",
+  "設定を読み込みました": "Einstellungen geladen",
+  "設定の形式が正しくありません": "Das Format der Einstellungen ist ungültig"
 }

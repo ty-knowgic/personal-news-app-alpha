@@ -49,6 +49,9 @@ const typeBadge = type => (SOURCE_BADGES[type] ? t(SOURCE_BADGES[type]) : '');
 const listJoin = items => formatList(items);
 const PAGE_SIZE = 30;
 const STORAGE_KEY = 'personal-news:list-state';
+// ご意見・情報源のリクエストの送り先。別のフォームを使う場合はここを置き換える
+const FEEDBACK_URL = 'https://github.com/ty-knowgic/sivry-app/issues/new';
+const HIDDEN_LIMIT = 300;
 
 const state = {
   tab: FOR_YOU_TAB,
@@ -153,13 +156,34 @@ function isForYou() {
   return state.tab === FOR_YOU_TAB;
 }
 
-function showToast(message) {
+function showToast(message, action) {
+  document.querySelectorAll('.toast').forEach(old => old.remove());
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.setAttribute('role', 'status');
-  toast.textContent = message;
+  toast.append(message);
+  if (action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toast-action';
+    button.textContent = action.label;
+    button.addEventListener('click', () => { toast.remove(); action.run(); });
+    toast.append(button);
+  }
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2200);
+  setTimeout(() => toast.remove(), action ? 6000 : 2200);
+}
+
+/** 保存済みのプロフィールを読み、変更して保存する。保存した結果を返す */
+async function updateProfile(change) {
+  const profile = await fetch('/api/profile').then(r => r.json());
+  const response = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(change(profile))
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
 }
 
 function saveListState() {
@@ -696,6 +720,12 @@ function renderDetail() {
     <div class="tags">
       ${item.hashtags.map(tag => `<button class="tag" type="button" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join('')}
     </div>
+    ${item.isSample ? '' : `
+      <div class="detail-actions">
+        <button class="secondary-button" type="button" data-action="hide-article">${escapeHtml(t('この記事を非表示'))}</button>
+        <button class="secondary-button" type="button" data-action="follow-source">${escapeHtml(t('{source}をマイニュースに追加', { source: t(item.sourceName) }))}</button>
+        <button class="secondary-button" type="button" data-action="mute-source">${escapeHtml(t('{source}をオフにする', { source: t(item.sourceName) }))}</button>
+      </div>`}
     ${sourceUrl ? `
       <div class="read-bar">
         <a class="read-button" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">
@@ -835,7 +865,57 @@ shareButton.addEventListener('click', async () => {
   }
 });
 
+function leaveDetail() {
+  if (openedFromList) history.back(); else location.hash = '#/';
+}
+
+/** 詳細画面の「非表示」「発信元を追加」「発信元をオフ」。保存はこの端末のプロフィールに行う */
+async function articleAction(action) {
+  const item = currentDetail?.item;
+  if (!item) return;
+  try {
+    if (action === 'hide-article') {
+      await updateProfile(profile => ({ ...profile, hiddenItems: [...profile.hiddenItems.filter(id => id !== item.id), item.id].slice(-HIDDEN_LIMIT) }));
+      state.items = [];
+      leaveDetail();
+      refreshNews();
+      showToast(t('非表示にしました'), {
+        label: t('元に戻す'),
+        run: () => updateProfile(profile => ({ ...profile, hiddenItems: profile.hiddenItems.filter(id => id !== item.id) })).then(refreshNews).catch(() => showToast(t('保存できませんでした')))
+      });
+    } else if (action === 'follow-source') {
+      let added = true;
+      await updateProfile((profile) => {
+        if (profile.topics.some(topic => topic.sources?.includes(item.sourceName))) { added = false; return profile; }
+        // ラベルは情報源の名前（日本語のキー）のまま保存し、表示のときに現在の言語へ訳す
+        const label = item.sourceName.slice(0, 40);
+        return { ...profile, topics: [...profile.topics, {
+          id: `pub-${Date.now().toString(36)}`, label, enabled: true, weight: 1, keywords: [], description: '',
+          alsoRequires: [], alsoRequiresRegions: [], regions: [], sourceTypes: [], sources: [item.sourceName], boostOnly: false
+        }] };
+      });
+      showToast(added ? t('マイニュースに追加しました。設定の「関心トピック」で編集できます。') : t('すでにマイニュースに追加されています'));
+    } else if (action === 'mute-source') {
+      const sources = await fetch('/api/sources').then(r => r.json());
+      const source = sources.find(entry => entry.feedUrl === item.feedUrl) ?? sources.find(entry => entry.sourceName === item.sourceName);
+      if (!source) throw new Error('source not found');
+      await updateProfile(profile => ({ ...profile, excludedSources: [...new Set([...profile.excludedSources, source.id])] }));
+      state.items = [];
+      leaveDetail();
+      refreshNews();
+      showToast(t('{source}をオフにしました。設定の「情報源」でオンに戻せます。', { source: t(item.sourceName) }));
+    }
+  } catch {
+    showToast(t('保存できませんでした'));
+  }
+}
+
 detailView.addEventListener('click', (event) => {
+  const articleButton = event.target.closest('[data-action="hide-article"], [data-action="follow-source"], [data-action="mute-source"]');
+  if (articleButton) {
+    articleAction(articleButton.dataset.action);
+    return;
+  }
   if (event.target.closest('[data-action="retry-summary"]') && currentDetail) {
     loadSummary(currentDetail.id);
     return;
@@ -1203,6 +1283,34 @@ function renderSettings() {
       <button class="secondary-button" type="button" data-action="reset-profile">${escapeHtml(t('初期設定に戻す'))}</button>
       <button class="primary-action" type="button" data-action="save-profile">${escapeHtml(t('保存'))}</button>
     </div>
+    ${renderSettingsExtras()}
+  `;
+}
+
+function renderSettingsExtras() {
+  const hidden = profileDraft.hiddenItems?.length ?? 0;
+  const feedback = kind => `${FEEDBACK_URL}?title=${encodeURIComponent(kind)}`;
+  return `
+    <section class="settings-extra">
+      <h2 class="settings-subtitle">${escapeHtml(t('設定の持ち運び'))}</h2>
+      <p class="settings-note">${escapeHtml(t('保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。'))}</p>
+      <div class="extra-actions">
+        <button class="secondary-button" type="button" data-action="copy-settings">${escapeHtml(t('設定をコピー'))}</button>
+        <button class="secondary-button" type="button" data-action="paste-settings">${escapeHtml(t('設定を貼り付け'))}</button>
+      </div>
+      <div class="paste-box" hidden>
+        <textarea rows="5" spellcheck="false" aria-label="${escapeHtml(t('設定を貼り付け'))}" placeholder="${escapeHtml(t('コピーした設定をここに貼り付けます'))}"></textarea>
+        <button class="secondary-button" type="button" data-action="import-settings">${escapeHtml(t('読み込む'))}</button>
+      </div>
+      ${hidden ? `<p class="settings-note hidden-note">${escapeHtml(t('非表示にした記事 {n}件', { n: hidden, count: hidden }))}
+        <button class="text-button" type="button" data-action="restore-hidden">${escapeHtml(t('すべて元に戻す'))}</button></p>` : ''}
+      <h2 class="settings-subtitle">${escapeHtml(t('ご意見・情報源のリクエスト'))}</h2>
+      <p class="settings-note">${escapeHtml(t('GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。'))}</p>
+      <div class="extra-actions">
+        <a class="secondary-button" href="${escapeHtml(feedback('[Feedback] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('ご意見を送る'))}</a>
+        <a class="secondary-button" href="${escapeHtml(feedback('[Source request] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('情報源をリクエスト'))}</a>
+      </div>
+    </section>
   `;
 }
 
@@ -1349,6 +1457,40 @@ settingsView.addEventListener('click', async (event) => {
     const index = Number(event.target.closest('.topic-editor').dataset.index);
     profileDraft.topics.splice(index, 1);
     renderSettings();
+  } else if (action === 'copy-settings') {
+    try {
+      const text = JSON.stringify(await fetch('/api/profile').then(r => r.json()));
+      await navigator.clipboard.writeText(text);
+      showToast(t('設定をコピーしました'));
+    } catch {
+      showToast(t('保存できませんでした'));
+    }
+  } else if (action === 'paste-settings') {
+    const box = settingsView.querySelector('.paste-box');
+    box.hidden = !box.hidden;
+    if (!box.hidden) box.querySelector('textarea').focus();
+  } else if (action === 'import-settings') {
+    const text = settingsView.querySelector('.paste-box textarea').value.trim();
+    try {
+      const parsed = JSON.parse(text);
+      const response = await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) });
+      if (!response.ok) throw new Error('invalid');
+      showToast(t('設定を読み込みました'));
+      await reloadFilters().catch(() => {});
+      state.items = [];
+      showSettings();
+    } catch {
+      showToast(t('設定の形式が正しくありません'));
+    }
+  } else if (action === 'restore-hidden') {
+    try {
+      await updateProfile(profile => ({ ...profile, hiddenItems: [] }));
+      profileDraft.hiddenItems = [];
+      state.items = [];
+      renderSettings();
+    } catch {
+      showToast(t('保存できませんでした'));
+    }
   } else if (action === 'reset-profile') {
     if (!confirm(t('地域・分野、情報源、関心トピックを初期設定に戻し、最初の質問からやり直しますか？'))) return;
     await fetch('/api/profile/reset', { method: 'POST' });

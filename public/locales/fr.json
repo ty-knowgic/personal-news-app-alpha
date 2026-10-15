@@ -213,5 +213,31 @@
   "要約の作成に失敗しました。": "Impossible de créer le résumé.",
   "サンプル記事は要約できません。": "Les articles d’exemple ne peuvent pas être résumés.",
   "データを読み込めませんでした。通信状況を確認してください。": "Impossible de charger les données. Vérifiez votre connexion.",
-  "言語を選ぶ": "Choisir la langue"
+  "言語を選ぶ": "Choisir la langue",
+  "この記事を非表示": "Masquer cet article",
+  "{source}をマイニュースに追加": "Ajouter {source} à Mon actu",
+  "{source}をオフにする": "Désactiver {source}",
+  "非表示にしました": "Article masqué",
+  "元に戻す": "Annuler",
+  "マイニュースに追加しました。設定の「関心トピック」で編集できます。": "Ajouté à Mon actu. Modifiable dans « Centres d’intérêt », dans les réglages.",
+  "すでにマイニュースに追加されています": "Déjà dans Mon actu",
+  "{source}をオフにしました。設定の「情報源」でオンに戻せます。": "Source désactivée : {source}. Vous pouvez la réactiver dans « Sources », dans les réglages.",
+  "設定の持ち運び": "Transférer vos réglages",
+  "保存済みの設定（地域・分野、情報源、関心トピック、非表示にした記事）をコピーして、別の端末に貼り付けられます。アカウントやサーバーへの保存はありません。": "Copiez vos réglages enregistrés (régions, sujets, sources, centres d’intérêt et articles masqués) et collez-les sur un autre appareil. Rien n’est stocké dans un compte ni sur un serveur.",
+  "設定をコピー": "Copier les réglages",
+  "設定を貼り付け": "Coller les réglages",
+  "コピーした設定をここに貼り付けます": "Collez ici les réglages copiés",
+  "読み込む": "Charger",
+  "非表示にした記事 {n}件": {
+    "one": "{n} article masqué",
+    "other": "{n} articles masqués"
+  },
+  "すべて元に戻す": "Tout rétablir",
+  "ご意見・情報源のリクエスト": "Commentaires et demandes de sources",
+  "GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。": "Publié sur la page publique Issues de GitHub. Un compte GitHub est nécessaire.",
+  "ご意見を送る": "Envoyer un commentaire",
+  "情報源をリクエスト": "Demander une source",
+  "設定をコピーしました": "Réglages copiés",
+  "設定を読み込みました": "Réglages chargés",
+  "設定の形式が正しくありません": "Le format des réglages n’est pas valide"
 }

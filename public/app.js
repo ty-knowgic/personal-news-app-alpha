@@ -875,13 +875,13 @@ async function articleAction(action) {
   if (!item) return;
   try {
     if (action === 'hide-article') {
-      await updateProfile(profile => ({ ...profile, hiddenItems: [...profile.hiddenItems.filter(id => id !== item.id), item.id].slice(-HIDDEN_LIMIT) }));
+      await updateProfile(profile => ({ ...profile, hiddenItems: [...(profile.hiddenItems ?? []).filter(id => id !== item.id), item.id].slice(-HIDDEN_LIMIT) }));
       state.items = [];
       leaveDetail();
       refreshNews();
       showToast(t('非表示にしました'), {
         label: t('元に戻す'),
-        run: () => updateProfile(profile => ({ ...profile, hiddenItems: profile.hiddenItems.filter(id => id !== item.id) })).then(refreshNews).catch(() => showToast(t('保存できませんでした')))
+        run: () => updateProfile(profile => ({ ...profile, hiddenItems: (profile.hiddenItems ?? []).filter(id => id !== item.id) })).then(refreshNews).catch(() => showToast(t('保存できませんでした')))
       });
     } else if (action === 'follow-source') {
       let added = true;

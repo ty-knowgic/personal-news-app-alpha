@@ -51,13 +51,15 @@ function detectLanguage() {
 
 let currentLang = detectLanguage();
 const dictionaries = {};
+// index.html が付けた版（?v=...）を訳ファイルにも付け、古い訳が混ざらないようにする
+const ASSET_VERSION = document.currentScript ? new URL(document.currentScript.src).search : '';
 const pluralRules = {};
 
 async function loadDictionary(name) {
   if (dictionaries[name]) return;
   try {
     // 相対パスにしておく（GitHub Pages のようにサイトが下位のパスにあっても読めるように）
-    const response = await fetch(`locales/${name}.json`);
+    const response = await fetch(`locales/${name}.json${ASSET_VERSION}`);
     dictionaries[name] = response.ok ? await response.json() : {};
   } catch {
     dictionaries[name] = {};

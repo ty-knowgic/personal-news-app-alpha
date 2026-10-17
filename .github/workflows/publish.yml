@@ -26,18 +26,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
       - run: npm run check:locales
+      # 敵意のあるフィードの内容を描画しても、スクリプトが実行されないことを確かめる
+      - run: npm run test:xss
 
       # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: data
           key: state-${{ github.run_id }}
@@ -46,7 +48,8 @@ jobs:
       # 意味による一致のための、小さなオープンソースの埋め込みモデル（外部の AI サービスは使わない）
       - name: Start the embedding model
         run: |
-          curl -fsSL https://ollama.com/install.sh | sh
+          # 版を固定して入れる（インストール用スクリプトは公式のもの。この実行環境には秘密情報を置いていない）
+          curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.40.5 sh
           # systemd が使えない実行環境があるため、サーバーを自分で起動して応答を待つ
           curl -s localhost:11434/api/tags > /dev/null || (nohup ollama serve > ollama.log 2>&1 &)
           for i in $(seq 1 60); do curl -s localhost:11434/api/tags > /dev/null && break; sleep 2; done
@@ -60,17 +63,17 @@ jobs:
 
       - run: npm run build:site
 
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: data
           key: state-${{ github.run_id }}
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: site
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
       # 公開リポジトリでは、60日間まったく動きがないと定期実行が止められるため、毎回有効化し直して延長する
       - name: Keep the schedule alive

@@ -1,9 +1,8 @@
 import { Readability } from '@mozilla/readability';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { isAllowedByRobots, USER_AGENT } from './robots.js';
 import type { ArticleContent } from './types.js';
 
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_HTML_BYTES = 3 * 1024 * 1024;
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
@@ -157,6 +156,8 @@ async function loadArticle(url: string, includePdf: boolean): Promise<ArticleSou
   if (cached && !(includePdf && cached.content.status === 'pdf')) return cached;
 
   let source: ArticleSource;
+  // robots.txt が取得を禁じているページは読みに行かない（元記事へのリンクは表示する）
+  if (!(await isAllowedByRobots(url))) return unavailable('robots.txt');
   try {
     const response = await fetch(url, {
       headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'ja,en;q=0.8' },

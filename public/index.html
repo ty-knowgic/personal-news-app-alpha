@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Sivry" />
+    <!-- 読み込めるものを自分のサイトのファイルだけに絞る（画像は https のもののみ）。インラインのスクリプトは使わない -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'" />
+    <meta name="referrer" content="no-referrer" />
     <title>Sivry</title>
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="icon" href="icon-32.png" sizes="32x32" type="image/png" />

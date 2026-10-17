@@ -236,5 +236,8 @@
   "情報源をリクエスト": "Solicitar una fuente",
   "設定をコピーしました": "Ajustes copiados",
   "設定を読み込みました": "Ajustes cargados",
-  "設定の形式が正しくありません": "El formato de los ajustes no es válido"
+  "設定の形式が正しくありません": "El formato de los ajustes no es válido",
+  "画像": "Imágenes",
+  "記事の画像を表示する": "Mostrar las imágenes de los artículos",
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Si lo activas, las imágenes se cargan directamente desde los servidores del emisor, que así sabe que las estás viendo (por ejemplo, tu dirección IP)."
 }

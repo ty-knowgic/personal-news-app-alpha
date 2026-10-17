@@ -1885,3 +1885,14 @@ html:lang(vi) body { line-height: 1.6; }
   font-size: 0.85rem;
   resize: vertical;
 }
+
+.images-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.images-toggle input { width: 20px; height: 20px; }

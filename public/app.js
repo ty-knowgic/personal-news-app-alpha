@@ -52,6 +52,35 @@ const STORAGE_KEY = 'personal-news:list-state';
 // ご意見・情報源のリクエストの送り先。別のフォームを使う場合はここを置き換える
 const FEEDBACK_URL = 'https://github.com/ty-knowgic/sivry-app/issues/new';
 const HIDDEN_LIMIT = 300;
+const IMAGES_KEY = 'sivry:images';
+
+// 記事の画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わる（IP アドレスなど）。そのため、初期状態では表示しない
+function imagesOn() {
+  try { return localStorage.getItem(IMAGES_KEY) === '1'; } catch { return false; }
+}
+function setImagesOn(on) {
+  try { localStorage.setItem(IMAGES_KEY, on ? '1' : '0'); } catch { /* 保存できなければ今回だけ切り替わる */ }
+}
+const articleImage = item => (imagesOn() ? safeUrl(item.imageUrl) : '');
+
+// 画像を読み込めなかったとき。インラインの onerror は使わない（Content-Security-Policy で禁止しているため）
+document.addEventListener('error', (event) => {
+  const img = event.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  const kind = img.dataset.fallback;
+  if (kind === 'hero') {
+    img.closest('.hero')?.classList.add('no-image');
+    img.remove();
+  } else if (kind === 'thumb') {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'thumb-placeholder';
+    placeholder.setAttribute('aria-hidden', 'true');
+    placeholder.textContent = img.dataset.initials ?? '';
+    img.replaceWith(placeholder);
+  } else if (kind === 'figure') {
+    img.parentElement?.remove();
+  }
+}, true);
 
 const state = {
   tab: FOR_YOU_TAB,
@@ -356,7 +385,7 @@ function renderHero(item) {
   const summary = item.ai?.summary || item.summary;
   return `
     <a class="hero" href="#/article/${encodeURIComponent(item.id)}" data-id="${escapeHtml(item.id)}" data-cat="${escapeHtml(category)}">
-      <img src="${escapeHtml(safeUrl(item.imageUrl))}" alt="" referrerpolicy="no-referrer" onerror="this.closest('.hero').classList.add('no-image');this.remove()">
+      <img src="${escapeHtml(articleImage(item))}" alt="" referrerpolicy="no-referrer" data-fallback="hero">
       <div class="hero-body">
         <span class="cat-pill">${escapeHtml(t(category))}・${escapeHtml(t(item.subgroup))}</span>
         <h2 class="hero-title">${escapeHtml(displayTitle(item))}</h2>
@@ -369,9 +398,9 @@ function renderHero(item) {
 
 function renderCard(item) {
   const category = primaryCategory(item);
-  const image = safeUrl(item.imageUrl);
+  const image = articleImage(item);
   const media = image
-    ? `<img class="thumb" src="${escapeHtml(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=&quot;thumb-placeholder&quot; aria-hidden=&quot;true&quot;>${escapeHtml(escapeHtml(sourceInitials(t(item.sourceName))))}</div>'">`
+    ? `<img class="thumb" src="${escapeHtml(image)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-fallback="thumb" data-initials="${escapeHtml(sourceInitials(t(item.sourceName)))}">`
     : `<div class="thumb-placeholder" aria-hidden="true">${escapeHtml(sourceInitials(t(item.sourceName)))}</div>`;
 
   return `
@@ -401,7 +430,7 @@ function renderCard(item) {
 function renderItems(items, lastDay, withHero) {
   let html = '';
   let currentDay = lastDay;
-  const heroIndex = withHero ? items.slice(0, 6).findIndex(item => safeUrl(item.imageUrl)) : -1;
+  const heroIndex = withHero ? items.slice(0, 6).findIndex(item => articleImage(item)) : -1;
   if (heroIndex >= 0) html += renderHero(items[heroIndex]);
 
   items.forEach((item, index) => {
@@ -692,7 +721,7 @@ function renderDetail() {
   const category = item.category;
 
   const contentImage = content?.imageUrl && !isGenericImage(content.imageUrl) ? safeUrl(content.imageUrl) : '';
-  const image = contentImage || safeUrl(item.imageUrl);
+  const image = imagesOn() ? (contentImage || safeUrl(item.imageUrl)) : '';
   const sourceUrl = safeUrl(item.sourceUrl);
   const headline = summary?.headlineJa || item.ai?.headlineJa || item.title;
   const showOriginal = headline !== item.title;
@@ -713,7 +742,7 @@ function renderDetail() {
         <time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatDateTime(item.publishedAt))}</time>
       </span>
     </div>
-    ${image ? `<figure class="detail-image"><img src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.remove()"></figure>` : ''}
+    ${image ? `<figure class="detail-image"><img src="${escapeHtml(image)}" alt="" referrerpolicy="no-referrer" data-fallback="figure"></figure>` : ''}
     ${renderAiCard(detail)}
     ${renderExcerpt(detail)}
     ${renderRelated(detail.related)}
@@ -1270,6 +1299,12 @@ function renderSettings() {
       <h2 class="settings-subtitle">${escapeHtml(getLang() === 'en' ? t('言語') : `${t('言語')} / Language`)}</h2>
       ${renderLanguageSelect()}
       <p class="settings-note">${escapeHtml(t('画面の表示言語です。記事の本文や要約は発信元・要約エンジンの言語のまま表示されます。'))}</p>
+      <h2 class="settings-subtitle">${escapeHtml(t('画像'))}</h2>
+      <label class="images-toggle">
+        <input type="checkbox" data-action="toggle-images" ${imagesOn() ? 'checked' : ''}>
+        <span>${escapeHtml(t('記事の画像を表示する'))}</span>
+      </label>
+      <p class="settings-note">${escapeHtml(t('オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。'))}</p>
     </section>
     <div class="segmented settings-tabs" role="radiogroup" aria-label="${escapeHtml(t('設定の区分'))}">
       ${[['scope', '地域・分野'], ['sources', '情報源'], ['topics', '関心トピック']].map(([value, label]) => `
@@ -1426,6 +1461,10 @@ settingsView.addEventListener('change', (event) => {
   if (event.target.matches('[data-field="enabled"]')) {
     event.target.closest('.topic-editor').classList.toggle('is-disabled', !event.target.checked);
   }
+});
+
+settingsView.addEventListener('change', (event) => {
+  if (event.target.matches('[data-action="toggle-images"]')) setImagesOn(event.target.checked);
 });
 
 settingsView.addEventListener('click', async (event) => {

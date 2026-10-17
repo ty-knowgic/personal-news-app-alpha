@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import Parser from 'rss-parser';
 import { fetchArticleContent, isGenericImage } from './articleContent.js';
 import { filterNews } from './newsFilters.js';
+import { USER_AGENT } from './robots.js';
 import { cleanFeedText, decodeEntities } from './text.js';
 import { CATEGORIES, SOURCE_TYPES, SUBGROUPS } from './types.js';
 import type { CategoryKey, FeedSource, NewsFilters, NewsItem } from './types.js';
@@ -23,9 +24,7 @@ const parser = new Parser<Record<string, unknown>, { mediaContent?: MediaField; 
   }
 });
 
-// 一部の公式サイト（FRB など）は簡易的な User-Agent を拒否するため、一般的なブラウザの値を送る
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+// 取得元には SivryBot と名乗る（「Mozilla/5.0 (compatible; …)」の形なら、公式サイトの多くが受け付ける）。ブラウザを装わない
 const FETCH_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const ITEMS_PER_FEED = 20;

@@ -1,0 +1,12 @@
+# 固定した GitHub Actions と npm の依存関係の更新を、毎週プルリクエストで知らせる
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

@@ -209,5 +209,8 @@
   "情報源をリクエスト": "Yêu cầu thêm nguồn",
   "設定をコピーしました": "Đã sao chép cài đặt",
   "設定を読み込みました": "Đã tải cài đặt",
-  "設定の形式が正しくありません": "Định dạng cài đặt không hợp lệ"
+  "設定の形式が正しくありません": "Định dạng cài đặt không hợp lệ",
+  "画像": "Hình ảnh",
+  "記事の画像を表示する": "Hiển thị hình ảnh bài viết",
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Khi bật, hình ảnh được tải trực tiếp từ máy chủ của đơn vị công bố, nên đơn vị đó biết bạn đang xem (ví dụ địa chỉ IP của bạn)."
 }

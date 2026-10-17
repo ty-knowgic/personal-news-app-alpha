@@ -1345,6 +1345,7 @@ function renderSettingsExtras() {
         <a class="secondary-button" href="${escapeHtml(feedback('[Feedback] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('ご意見を送る'))}</a>
         <a class="secondary-button" href="${escapeHtml(feedback('[Source request] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('情報源をリクエスト'))}</a>
       </div>
+      <p class="settings-note"><a href="legal.html" target="_blank" rel="noopener">${escapeHtml(t('プライバシー・利用条件'))}</a></p>
     </section>
   `;
 }

@@ -218,5 +218,6 @@
   "設定の形式が正しくありません": "Hindi wasto ang format ng mga setting",
   "画像": "Mga larawan",
   "記事の画像を表示する": "Ipakita ang mga larawan ng artikulo",
-  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Kapag naka-on, direktang nilo-load ang mga larawan mula sa server ng tagapaglathala, kaya nalalaman ng tagapaglathala na tinitingnan mo ang mga ito (halimbawa, ang iyong IP address)."
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Kapag naka-on, direktang nilo-load ang mga larawan mula sa server ng tagapaglathala, kaya nalalaman ng tagapaglathala na tinitingnan mo ang mga ito (halimbawa, ang iyong IP address).",
+  "プライバシー・利用条件": "Privacy at mga tuntunin"
 }

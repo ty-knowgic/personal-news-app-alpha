@@ -212,5 +212,6 @@
   "設定の形式が正しくありません": "Format pengaturan tidak valid",
   "画像": "Gambar",
   "記事の画像を表示する": "Tampilkan gambar artikel",
-  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Jika aktif, gambar dimuat langsung dari server penerbit, sehingga penerbit mengetahui Anda melihatnya (misalnya alamat IP Anda)."
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Jika aktif, gambar dimuat langsung dari server penerbit, sehingga penerbit mengetahui Anda melihatnya (misalnya alamat IP Anda).",
+  "プライバシー・利用条件": "Privasi & ketentuan"
 }

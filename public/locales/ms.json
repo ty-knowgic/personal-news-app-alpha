@@ -212,5 +212,6 @@
   "設定の形式が正しくありません": "Format tetapan tidak sah",
   "画像": "Imej",
   "記事の画像を表示する": "Papar imej artikel",
-  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Apabila dihidupkan, imej dimuatkan terus daripada pelayan penerbit, sehingga penerbit dapat mengetahui anda melihatnya (contohnya alamat IP anda)."
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Apabila dihidupkan, imej dimuatkan terus daripada pelayan penerbit, sehingga penerbit dapat mengetahui anda melihatnya (contohnya alamat IP anda).",
+  "プライバシー・利用条件": "Privasi & terma"
 }

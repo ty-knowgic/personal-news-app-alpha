@@ -239,5 +239,6 @@
   "設定の形式が正しくありません": "O formato dos ajustes é inválido",
   "画像": "Imagens",
   "記事の画像を表示する": "Mostrar as imagens dos artigos",
-  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Quando ativado, as imagens são carregadas diretamente dos servidores do emissor, que assim sabe que você as está vendo (por exemplo, seu endereço IP)."
+  "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Quando ativado, as imagens são carregadas diretamente dos servidores do emissor, que assim sabe que você as está vendo (por exemplo, seu endereço IP).",
+  "プライバシー・利用条件": "Privacidade e termos"
 }

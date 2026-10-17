@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { embedItemsInBackground, exportItemVectors, exportQueryVectors, getEmbeddingStatus } from '../src/embeddings.js';
 import { listSources, loadNews, waitForImageEnrichment } from '../src/newsPipeline.js';
-import { defaultProfile, semanticQueries } from '../src/profile.js';
+import { defaultProfile } from '../src/profile.js';
 import { getStoredSummaries, summarizeLatestInBackground } from '../src/summarizer.js';
 import { withStoredSummaries } from '../src/api.js';
 
@@ -31,7 +31,8 @@ await embedItemsInBackground(withStoredSummaries(summaries, items).map(item => (
 const ids = new Set(items.map(item => item.id));
 const vectors = await exportItemVectors([...ids]);
 // 初期設定のトピックの説明文だけ、ここでベクトル化しておく（利用者が自分で足したトピックはキーワードだけで判定する）
-const topicVectors = await exportQueryVectors(semanticQueries(defaultProfile()).map(topic => topic.description));
+// 初期設定のトピックは、初回の質問で選ぶまでは無効なので、有効かどうかに関わらず説明文のあるものすべてを計算する
+const topicVectors = await exportQueryVectors(defaultProfile().topics.flatMap(topic => (topic.description?.trim() ? [topic.description] : [])));
 const status = getEmbeddingStatus();
 const semanticReady = Object.keys(vectors).length > 0 && Object.keys(topicVectors).length > 0;
 // 定期ジョブでは、埋め込みが使えない状態のデータを公開しない（前回の公開データを残す）

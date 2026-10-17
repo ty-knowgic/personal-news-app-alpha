@@ -14,12 +14,14 @@ interface MediaField {
   $?: { url?: string; medium?: string; type?: string };
 }
 
-const parser = new Parser<Record<string, unknown>, { mediaContent?: MediaField; mediaThumbnail?: MediaField; language?: string }>({
+const parser = new Parser<Record<string, unknown>, { mediaContent?: MediaField; mediaThumbnail?: MediaField; language?: string; updatedAt?: string }>({
   customFields: {
     item: [
       ['media:content', 'mediaContent'],
       ['media:thumbnail', 'mediaThumbnail'],
-      ['dc:language', 'language']
+      ['dc:language', 'language'],
+      // 欧州理事会のように pubDate の代わりに a10:updated を使うフィード
+      ['a10:updated', 'updatedAt']
     ]
   }
 });
@@ -126,6 +128,19 @@ export const officialFeeds: FeedSource[] = [
   { sourceType: 'npo', category: '安全保障', subgroup: '日本', sourceName: 'JPCERT/CC', sourceUrl: 'https://www.jpcert.or.jp/', feedUrl: 'https://www.jpcert.or.jp/rss/jpcert.rdf', label: 'JPCERT/CC 注意喚起（サイバーセキュリティ）', maxItems: 6, excludeRoutine: true },
   { sourceType: 'official', category: '安全保障', subgroup: '米国', sourceName: '米国防総省', sourceUrl: 'https://www.defense.gov/', feedUrl: 'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10', label: 'U.S. Department of Defense News', maxItems: 8 },
   { sourceType: 'official', category: '安全保障', subgroup: '米国', sourceName: 'CISA', sourceUrl: 'https://www.cisa.gov/', feedUrl: 'https://www.cisa.gov/news.xml', label: 'CISA（米サイバーセキュリティ・インフラ安全保障庁）' },
+  // 国際機関・経済・通商・医療・気候（一般の関心が高い分野の一次情報。2026-10 に取得できることを確認済み）
+  { sourceType: 'official', category: '国際', subgroup: 'グローバル', sourceName: '国連ニュース', sourceUrl: 'https://news.un.org/', feedUrl: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml', label: 'UN News', maxItems: 8 },
+  { sourceType: 'official', category: '経済', subgroup: 'グローバル', sourceName: 'WTO', sourceUrl: 'https://www.wto.org/', feedUrl: 'https://www.wto.org/library/rss/latest_news_e.xml', label: 'WTO（世界貿易機関）ニュース', maxItems: 8 },
+  { sourceType: 'official', category: '経済', subgroup: '米国', sourceName: '米経済分析局', sourceUrl: 'https://www.bea.gov/', feedUrl: 'https://www.bea.gov/rss/rss.xml', label: 'BEA（米国経済分析局）', maxItems: 8 },
+  { sourceType: 'official', category: '経済', subgroup: '米国', sourceName: '米通商代表部', sourceUrl: 'https://ustr.gov/', feedUrl: 'https://ustr.gov/rss.xml', label: 'USTR（米国通商代表部）', maxItems: 8 },
+  { sourceType: 'official', category: '投資', subgroup: '米国', sourceName: 'SEC', sourceUrl: 'https://www.sec.gov/newsroom', feedUrl: 'https://www.sec.gov/news/pressreleases.rss', label: 'SEC（米証券取引委員会）プレスリリース', maxItems: 8 },
+  { sourceType: 'official', category: '社会', subgroup: '米国', sourceName: 'FDA', sourceUrl: 'https://www.fda.gov/news-events', feedUrl: 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml', label: 'FDA（米国食品医薬品局）プレスリリース', maxItems: 8 },
+  { sourceType: 'official', category: 'サイエンス', subgroup: '米国', sourceName: 'NOAA', sourceUrl: 'https://www.noaa.gov/', feedUrl: 'https://www.noaa.gov/rss.xml', label: 'NOAA（米国海洋大気庁）', maxItems: 8 },
+  { sourceType: 'official', category: '政治', subgroup: '欧州', sourceName: '欧州理事会', sourceUrl: 'https://www.consilium.europa.eu/en/press/', feedUrl: 'https://www.consilium.europa.eu/en/rss/pressreleases.ashx', label: 'Council of the EU Press Releases', maxItems: 8, excludeRoutine: true },
+  { sourceType: 'official', category: '社会', subgroup: '欧州', sourceName: '欧州医薬品庁', sourceUrl: 'https://www.ema.europa.eu/en/news', feedUrl: 'https://www.ema.europa.eu/en/news.xml', label: 'EMA（欧州医薬品庁）ニュース', maxItems: 8 },
+  { sourceType: 'official', category: '社会', subgroup: '欧州', sourceName: 'ECDC', sourceUrl: 'https://www.ecdc.europa.eu/en/news-events', feedUrl: 'https://www.ecdc.europa.eu/en/taxonomy/term/1307/feed', label: 'ECDC（欧州疾病予防管理センター）', maxItems: 8 },
+  { sourceType: 'official', category: '政治', subgroup: '日本', sourceName: '内閣府', sourceUrl: 'https://www.cao.go.jp/', feedUrl: 'https://www.cao.go.jp/rss/news.rdf', label: '内閣府 新着情報', maxItems: 8, excludeRoutine: true },
+  { sourceType: 'research', category: 'サイエンス', subgroup: '日本', sourceName: '京都大学', sourceUrl: 'https://www.kyoto-u.ac.jp/', feedUrl: 'https://www.kyoto-u.ac.jp/ja/rss.xml', label: '京都大学 ニュース', maxItems: 8 },
   // 文化・芸術
   { sourceType: 'official', category: '文化・芸術', subgroup: '米国', sourceName: '全米芸術基金', sourceUrl: 'https://www.arts.gov/', feedUrl: 'https://www.arts.gov/rss.xml', label: 'National Endowment for the Arts' },
   // 業界団体・NPO
@@ -268,7 +283,7 @@ const fallbackArticles: Omit<NewsItem, 'id'>[] = [
 ];
 
 // 公的機関の発表のうち、ニュース性の低い定型的なお知らせ（入札結果、採用募集など）
-const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券|^Weekly Report:|^APOD:/;
+const ROUTINE_NOTICE = /入札|落札|発行予定額|国債金利情報|分離状況|現在高推移|(職員|スタッフ|人材|研究員).{0,12}募集|説明会|座談会|オープン・カンパニー|ディスカッション・ペーパー|時系列統計|調達情報|オペレーション（|国庫短期証券|^Weekly Report:|^APOD:|^Weekly schedule/i;
 // 自治体の発表のうち、日々の定型的なお知らせ（通行止め、水道管の破損、施設の休業、撮影の告知など）
 const LOCAL_ROUTINE_NOTICE = /^(road|trail|sidewalk|lane) closures?\b|road closures report|watermain break|filming notification|holiday hours|closed .{0,40}for maintenance|what['’]s open and closed|committee of adjustment meeting/i;
 
@@ -418,6 +433,11 @@ function toIsoDate(value: string | undefined): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
+/** 記事の公開日時。フィードによって isoDate・pubDate・date・a10:updated のいずれかに入っている */
+function itemDate(item: { isoDate?: string; pubDate?: string; updatedAt?: string }): string | undefined {
+  return toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date) ?? toIsoDate(item.updatedAt);
+}
+
 /** 情報源ごとの直近の取得結果（設定画面と品質チェックで、取得できていない情報源を見つけるため） */
 export interface FeedHealth {
   checkedAt: string;
@@ -437,7 +457,7 @@ function recordHealth(source: FeedSource, health: Omit<FeedHealth, 'checkedAt'>)
   feedHealth.set(source.feedUrl, { checkedAt: new Date().toISOString(), ...health });
 }
 
-async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
+export async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
   try {
     const response = await fetch(source.feedUrl, {
       headers: { 'User-Agent': USER_AGENT },
@@ -458,7 +478,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
 
     // フィードによっては新しい順に並んでいないため、日付順に並べ替えてから取り込む
     const sorted = [...(parsed.items ?? [])].sort(
-      (a, b) => (Date.parse(toIsoDate(b.isoDate ?? b.pubDate) ?? '') || 0) - (Date.parse(toIsoDate(a.isoDate ?? a.pubDate) ?? '') || 0)
+      (a, b) => (Date.parse(itemDate(b) ?? '') || 0) - (Date.parse(itemDate(a) ?? '') || 0)
     );
 
     for (const item of sorted) {
@@ -466,7 +486,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
 
       const title = normalizeTitle(textOf(item.title));
       const link = absoluteUrl(item.link, source.sourceUrl);
-      const publishedAt = toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date);
+      const publishedAt = itemDate(item);
       if (!title || !link || !publishedAt) continue;
 
       // 翻訳版など対象外の言語の記事は取り込まない
@@ -495,7 +515,7 @@ async function fetchFeed(source: FeedSource): Promise<NewsItem[]> {
       }, categories));
     }
 
-    const newest = sorted.map(item => toIsoDate(item.isoDate ?? item.pubDate) ?? toIsoDate((item as { date?: string }).date)).find(Boolean);
+    const newest = sorted.map(itemDate).find(Boolean);
     recordHealth(source, { ok: true, entries: parsed.items?.length ?? 0, imported: items.length, newestEntry: newest });
     return items;
   } catch (error) {

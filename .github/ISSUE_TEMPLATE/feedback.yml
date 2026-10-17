@@ -1,0 +1,60 @@
+name: Beta feedback / ベータ版のご意見
+description: Tell us how Sivry worked for you. / 使ってみた感想をお聞かせください。
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This page is public** and shows your GitHub username. Please don't include personal or confidential information.
+        **このページは公開されます**（GitHub のユーザー名も表示されます）。個人情報や秘密情報は書かないでください。
+  - type: dropdown
+    id: miss
+    attributes:
+      label: If Sivry disappeared tomorrow, how would you feel? / 明日 Sivry がなくなったらどう感じますか？
+      options:
+        - Very disappointed / とても困る
+        - Somewhat disappointed / 少し困る
+        - Not disappointed / 困らない
+        - I haven't used it enough to say / まだ判断できるほど使っていない
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often did you open it this week? / 今週どのくらい開きましたか？
+      options:
+        - Daily / 毎日
+        - A few times / 数回
+        - Once / 1回
+        - Not since the first time / 最初の1回だけ
+    validations:
+      required: true
+  - type: textarea
+    id: first
+    attributes:
+      label: What is the first thing you would change? / まず直してほしい点は？
+    validations:
+      required: true
+  - type: textarea
+    id: missing
+    attributes:
+      label: Was anything you wanted to follow missing? / 追いたいのに見つからなかった話題や発信元は？
+  - type: textarea
+    id: pay
+    attributes:
+      label: Is there something you would pay for? / お金を払ってもよいと思う機能はありますか？
+      description: Optional. "Nothing" is a useful answer. / 任意です。「ない」も大事な答えです。
+  - type: dropdown
+    id: team
+    attributes:
+      label: Would a team or colleagues use it too? / 同僚やチームでも使いたいですか？
+      options:
+        - Yes / はい
+        - Maybe / たぶん
+        - No / いいえ
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser / 端末とブラウザ
+      placeholder: iPhone Safari, Windows Chrome, ...

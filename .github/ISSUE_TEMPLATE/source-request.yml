@@ -1,0 +1,31 @@
+name: Source request / 情報源のリクエスト
+description: Suggest a primary source to add. / 追加してほしい一次情報の発信元を教えてください。
+title: "[Source request] "
+labels: ["source-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sivry lists only **primary sources**: governments, companies, research institutions and non-profits publishing for themselves. Media outlets, blogs and social media are not added.
+        Sivry は**一次情報**（政府・自治体、企業、研究機関、団体などが自ら発表したもの）だけを載せます。報道機関、ブログ、SNS は追加しません。
+  - type: input
+    id: name
+    attributes:
+      label: Organization / 発信元の名前
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: News or press release page URL / ニュース・報道発表のページの URL
+    validations:
+      required: true
+  - type: input
+    id: feed
+    attributes:
+      label: RSS or Atom feed URL (if you know it) / RSS・Atom フィードの URL（わかれば）
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter to you? / なぜ必要ですか？
+      description: Topic, country, and what you were looking for. / 話題・国・探していた情報など。

@@ -1380,7 +1380,8 @@ function renderSettings() {
 
 function renderSettingsExtras() {
   const hidden = profileDraft.hiddenItems?.length ?? 0;
-  const feedback = kind => `${FEEDBACK_URL}?title=${encodeURIComponent(kind)}`;
+  // 質問の入った書式（.github/ISSUE_TEMPLATE）で開く
+  const feedback = template => `${FEEDBACK_URL}?template=${template}`;
   return `
     <section class="settings-extra">
       <h2 class="settings-subtitle">${escapeHtml(t('設定の持ち運び'))}</h2>
@@ -1399,8 +1400,8 @@ function renderSettingsExtras() {
       <h2 class="settings-subtitle">${escapeHtml(t('ご意見・情報源のリクエスト'))}</h2>
       <p class="settings-note">${escapeHtml(t('GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。'))}</p>
       <div class="extra-actions">
-        <a class="secondary-button" href="${escapeHtml(feedback('[Feedback] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('ご意見を送る'))}</a>
-        <a class="secondary-button" href="${escapeHtml(feedback('[Source request] '))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('情報源をリクエスト'))}</a>
+        <a class="secondary-button" href="${escapeHtml(feedback('feedback.yml'))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('ご意見を送る'))}</a>
+        <a class="secondary-button" href="${escapeHtml(feedback('source-request.yml'))}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('情報源をリクエスト'))}</a>
       </div>
       <p class="settings-note"><a href="legal.html" target="_blank" rel="noopener">${escapeHtml(t('プライバシー・利用条件'))}</a></p>
     </section>

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Privacy & terms / プライバシーと利用条件
+    url: https://ty-knowgic.github.io/sivry-app/legal.html
+    about: What Sivry stores and how sources are handled. / 保存する情報と情報源の扱い

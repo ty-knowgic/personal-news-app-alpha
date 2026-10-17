@@ -213,5 +213,18 @@
   "画像": "Imej",
   "記事の画像を表示する": "Papar imej artikel",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Apabila dihidupkan, imej dimuatkan terus daripada pelayan penerbit, sehingga penerbit dapat mengetahui anda melihatnya (contohnya alamat IP anda).",
-  "プライバシー・利用条件": "Privasi & terma"
+  "プライバシー・利用条件": "Privasi & terma",
+  "Google ドライブで同期": "Segerak dengan Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Menyimpan tetapan anda dalam folder tersembunyi khusus apl di Google Drive anda sendiri dan menyegerakkannya merentas peranti. Tiada apa-apa disimpan di pelayan Sivry. Log masuk Google hanya digunakan untuk penyegerakan, dan Sivry tidak boleh membaca fail di luar folder itu.",
+  "Google でログインして同期": "Log masuk dengan Google untuk menyegerak",
+  "今すぐ同期": "Segerak sekarang",
+  "同期をやめる": "Berhenti menyegerak",
+  "ドライブの保存データを削除": "Padam data yang disimpan di Drive",
+  "同期しました": "Disegerakkan",
+  "同期できませんでした": "Tidak dapat menyegerak",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "Tetapan di Drive berbeza daripada tetapan pada peranti ini. Gunakan tetapan dari Drive? (Batal akan menimpa Drive dengan tetapan peranti ini.)",
+  "同期は有効です。最終同期: {time}": "Penyegerakan aktif. Terakhir disegerakkan: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Padam data yang disimpan di Drive? Tetapan pada peranti ini dikekalkan.",
+  "ドライブの設定を読み込みました": "Tetapan dari Drive dimuatkan",
+  "削除しました": "Dipadam"
 }

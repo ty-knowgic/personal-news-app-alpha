@@ -213,5 +213,18 @@
   "画像": "Hình ảnh",
   "記事の画像を表示する": "Hiển thị hình ảnh bài viết",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Khi bật, hình ảnh được tải trực tiếp từ máy chủ của đơn vị công bố, nên đơn vị đó biết bạn đang xem (ví dụ địa chỉ IP của bạn).",
-  "プライバシー・利用条件": "Quyền riêng tư & điều khoản"
+  "プライバシー・利用条件": "Quyền riêng tư & điều khoản",
+  "Google ドライブで同期": "Đồng bộ với Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Lưu cài đặt của bạn trong thư mục ẩn dành riêng cho ứng dụng trên Google Drive của chính bạn và đồng bộ giữa các thiết bị. Không có gì được lưu trên máy chủ của Sivry. Đăng nhập Google chỉ dùng để đồng bộ và Sivry không thể đọc tệp nào ngoài thư mục đó.",
+  "Google でログインして同期": "Đăng nhập Google để đồng bộ",
+  "今すぐ同期": "Đồng bộ ngay",
+  "同期をやめる": "Ngừng đồng bộ",
+  "ドライブの保存データを削除": "Xóa dữ liệu đã lưu trên Drive",
+  "同期しました": "Đã đồng bộ",
+  "同期できませんでした": "Không thể đồng bộ",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "Cài đặt trên Drive khác với cài đặt trên thiết bị này. Dùng cài đặt từ Drive? (Hủy sẽ ghi đè Drive bằng cài đặt của thiết bị này.)",
+  "同期は有効です。最終同期: {time}": "Đồng bộ đang bật. Lần đồng bộ gần nhất: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Xóa dữ liệu đã lưu trên Drive? Cài đặt trên thiết bị này vẫn được giữ.",
+  "ドライブの設定を読み込みました": "Đã tải cài đặt từ Drive",
+  "削除しました": "Đã xóa"
 }

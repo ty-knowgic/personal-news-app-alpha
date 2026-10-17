@@ -1339,6 +1339,7 @@ function renderSettingsExtras() {
       </div>
       ${hidden ? `<p class="settings-note hidden-note">${escapeHtml(t('非表示にした記事 {n}件', { n: hidden, count: hidden }))}
         <button class="text-button" type="button" data-action="restore-hidden">${escapeHtml(t('すべて元に戻す'))}</button></p>` : ''}
+      ${renderSyncSection()}
       <h2 class="settings-subtitle">${escapeHtml(t('ご意見・情報源のリクエスト'))}</h2>
       <p class="settings-note">${escapeHtml(t('GitHub の公開ページ（Issues）に投稿されます。GitHub のアカウントが必要です。'))}</p>
       <div class="extra-actions">
@@ -1348,6 +1349,49 @@ function renderSettingsExtras() {
       <p class="settings-note"><a href="legal.html" target="_blank" rel="noopener">${escapeHtml(t('プライバシー・利用条件'))}</a></p>
     </section>
   `;
+}
+
+/** Google ドライブでの同期の項目。クライアント ID が未設定（SivrySync.available が偽）なら出さない */
+function renderSyncSection() {
+  if (!window.SivrySync?.available) return '';
+  const state = window.SivrySync.state();
+  const button = (action, label) => `<button class="secondary-button" type="button" data-action="${action}">${escapeHtml(t(label))}</button>`;
+  const status = state.enabled && state.lastAt
+    ? `<p class="settings-note">${escapeHtml(t('同期は有効です。最終同期: {time}', { time: new Date(state.lastAt).toLocaleString(locale()) }))}</p>`
+    : '';
+  return `
+      <h2 class="settings-subtitle">${escapeHtml(t('Google ドライブで同期'))}</h2>
+      <p class="settings-note">${escapeHtml(t('設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。'))}</p>
+      ${status}
+      <div class="extra-actions">
+        ${state.enabled
+          ? button('sync-now', '今すぐ同期') + button('sync-disconnect', '同期をやめる') + button('sync-delete', 'ドライブの保存データを削除')
+          : button('sync-connect', 'Google でログインして同期')}
+      </div>`;
+}
+
+function syncConflict() {
+  return confirm(t('ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）'));
+}
+
+async function runSync(operation) {
+  try {
+    const action = await operation();
+    if (action !== 'pull') showToast(t('同期しました'));
+    if (settingsView && !settingsView.hidden) renderSettings();
+  } catch {
+    showToast(t('同期できませんでした'));
+  }
+}
+
+if (window.SivrySync) {
+  // ドライブ側の設定を取り込んだら、画面を読み込み直して反映する
+  window.SivrySync.on((event) => {
+    if (event.type !== 'pulled') return;
+    showToast(t('ドライブの設定を読み込みました'));
+    setTimeout(() => location.reload(), 900);
+  });
+  window.SivrySync.auto(syncConflict);
 }
 
 // 入力欄の内容を下書きに反映する（再描画の前に呼ぶ）
@@ -1521,6 +1565,19 @@ settingsView.addEventListener('click', async (event) => {
       showSettings();
     } catch {
       showToast(t('設定の形式が正しくありません'));
+    }
+  } else if (action === 'sync-connect' || action === 'sync-now') {
+    await runSync(() => window.SivrySync.connect(syncConflict));
+  } else if (action === 'sync-disconnect') {
+    await window.SivrySync.disconnect();
+    renderSettings();
+  } else if (action === 'sync-delete') {
+    if (!confirm(t('ドライブの保存データを削除しますか？この端末の設定は残ります。'))) return;
+    try {
+      await window.SivrySync.deleteRemote();
+      showToast(t('削除しました'));
+    } catch {
+      showToast(t('同期できませんでした'));
     }
   } else if (action === 'restore-hidden') {
     try {

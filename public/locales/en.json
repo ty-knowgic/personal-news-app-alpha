@@ -245,5 +245,18 @@
   "画像": "Images",
   "記事の画像を表示する": "Show article images",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "When on, images load directly from the publisher’s servers, which tells the publisher you are viewing them (your IP address, for example).",
-  "プライバシー・利用条件": "Privacy & terms"
+  "プライバシー・利用条件": "Privacy & terms",
+  "Google ドライブで同期": "Sync with Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Saves your settings in a hidden, app-only folder in your own Google Drive and syncs them across devices. Nothing is stored on Sivry's servers. Google sign-in is used only for syncing, and Sivry cannot read any files outside that folder.",
+  "Google でログインして同期": "Sign in with Google to sync",
+  "今すぐ同期": "Sync now",
+  "同期をやめる": "Stop syncing",
+  "ドライブの保存データを削除": "Delete data saved in Drive",
+  "同期しました": "Synced",
+  "同期できませんでした": "Could not sync",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "The settings in Drive differ from the ones on this device. Use the settings from Drive? (Cancel overwrites Drive with this device's settings.)",
+  "同期は有効です。最終同期: {time}": "Sync is on. Last synced: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Delete the data saved in Drive? Settings on this device are kept.",
+  "ドライブの設定を読み込みました": "Loaded settings from Drive",
+  "削除しました": "Deleted"
 }

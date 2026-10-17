@@ -213,5 +213,18 @@
   "画像": "Gambar",
   "記事の画像を表示する": "Tampilkan gambar artikel",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Jika aktif, gambar dimuat langsung dari server penerbit, sehingga penerbit mengetahui Anda melihatnya (misalnya alamat IP Anda).",
-  "プライバシー・利用条件": "Privasi & ketentuan"
+  "プライバシー・利用条件": "Privasi & ketentuan",
+  "Google ドライブで同期": "Sinkronkan dengan Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Menyimpan pengaturan Anda di folder tersembunyi khusus aplikasi di Google Drive Anda sendiri dan menyinkronkannya antarperangkat. Tidak ada yang disimpan di server Sivry. Login Google hanya dipakai untuk sinkronisasi, dan Sivry tidak dapat membaca file di luar folder itu.",
+  "Google でログインして同期": "Masuk dengan Google untuk sinkronisasi",
+  "今すぐ同期": "Sinkronkan sekarang",
+  "同期をやめる": "Hentikan sinkronisasi",
+  "ドライブの保存データを削除": "Hapus data yang tersimpan di Drive",
+  "同期しました": "Tersinkronkan",
+  "同期できませんでした": "Tidak dapat menyinkronkan",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "Pengaturan di Drive berbeda dengan pengaturan di perangkat ini. Gunakan pengaturan dari Drive? (Batal akan menimpa Drive dengan pengaturan perangkat ini.)",
+  "同期は有効です。最終同期: {time}": "Sinkronisasi aktif. Terakhir disinkronkan: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Hapus data yang tersimpan di Drive? Pengaturan di perangkat ini tetap ada.",
+  "ドライブの設定を読み込みました": "Pengaturan dari Drive dimuat",
+  "削除しました": "Dihapus"
 }

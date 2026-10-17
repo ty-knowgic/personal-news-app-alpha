@@ -29,7 +29,7 @@ if (!html.includes('<script src="app.js">')) throw new Error('index.html に app
 const version = (process.env.GITHUB_SHA ?? String(Date.now())).slice(0, 10);
 const versioned = html
   .replace('<script src="app.js">', '<script src="static-api.js"></script>\n    <script src="app.js">')
-  .replace(/(<script src="(?:i18n|static-api|app)\.js)"/g, `$1?v=${version}"`)
+  .replace(/(<script src="(?:i18n|sync|static-api|app)\.js)"/g, `$1?v=${version}"`)
   .replace('href="styles.css"', `href="styles.css?v=${version}"`);
 await writeFile(indexPath, versioned);
 console.log('site/ を作成しました');

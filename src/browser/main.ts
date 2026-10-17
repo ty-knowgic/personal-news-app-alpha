@@ -12,6 +12,7 @@ import { createScorer, decodeVector, itemVectors, textKey } from '../vectors.js'
  */
 
 const PROFILE_KEY = 'sivry.profile.v1';
+const PROFILE_UPDATED_KEY = 'sivry.profile.updatedAt';
 
 interface Meta {
   generatedAt: string;
@@ -75,6 +76,9 @@ function loadProfile(): Profile {
 function saveProfile(input: unknown): Profile {
   const profile = ProfileSchema.parse(input);
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  // 端末間の同期（sync.js）が「この端末で設定が変わった」ことを判断できるように、更新時刻を残して知らせる
+  localStorage.setItem(PROFILE_UPDATED_KEY, String(Math.max(Date.now(), Number(localStorage.getItem(PROFILE_UPDATED_KEY)) + 1)));
+  window.dispatchEvent(new Event('sivry:profile-saved'));
   return profile;
 }
 

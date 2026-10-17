@@ -38,6 +38,9 @@ jobs:
       # 敵意のあるフィードの内容を描画しても、スクリプトが実行されないことを確かめる
       - run: npm run test:xss
 
+      # Google ドライブ同期の判断（送信・取り込み・競合）を、偽のドライブで確かめる
+      - run: npm run test:sync
+
       # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:

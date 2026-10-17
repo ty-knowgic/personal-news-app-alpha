@@ -240,5 +240,18 @@
   "画像": "Imágenes",
   "記事の画像を表示する": "Mostrar las imágenes de los artículos",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Si lo activas, las imágenes se cargan directamente desde los servidores del emisor, que así sabe que las estás viendo (por ejemplo, tu dirección IP).",
-  "プライバシー・利用条件": "Privacidad y condiciones"
+  "プライバシー・利用条件": "Privacidad y condiciones",
+  "Google ドライブで同期": "Sincronizar con Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Guarda tus ajustes en una carpeta oculta exclusiva de la app en tu propio Google Drive y los sincroniza entre dispositivos. No se guarda nada en los servidores de Sivry. El inicio de sesión de Google solo sirve para sincronizar, y Sivry no puede leer ningún archivo fuera de esa carpeta.",
+  "Google でログインして同期": "Iniciar sesión con Google para sincronizar",
+  "今すぐ同期": "Sincronizar ahora",
+  "同期をやめる": "Dejar de sincronizar",
+  "ドライブの保存データを削除": "Eliminar los datos guardados en Drive",
+  "同期しました": "Sincronizado",
+  "同期できませんでした": "No se pudo sincronizar",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "Los ajustes de Drive son distintos de los de este dispositivo. ¿Usar los de Drive? (Cancelar sobrescribe Drive con los ajustes de este dispositivo.)",
+  "同期は有効です。最終同期: {time}": "Sincronización activada. Última sincronización: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "¿Eliminar los datos guardados en Drive? Los ajustes de este dispositivo se conservan.",
+  "ドライブの設定を読み込みました": "Ajustes cargados desde Drive",
+  "削除しました": "Eliminado"
 }

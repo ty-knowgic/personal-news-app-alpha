@@ -219,5 +219,18 @@
   "画像": "Mga larawan",
   "記事の画像を表示する": "Ipakita ang mga larawan ng artikulo",
   "オンにすると、画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わります（IP アドレスなど）。": "Kapag naka-on, direktang nilo-load ang mga larawan mula sa server ng tagapaglathala, kaya nalalaman ng tagapaglathala na tinitingnan mo ang mga ito (halimbawa, ang iyong IP address).",
-  "プライバシー・利用条件": "Privacy at mga tuntunin"
+  "プライバシー・利用条件": "Privacy at mga tuntunin",
+  "Google ドライブで同期": "I-sync gamit ang Google Drive",
+  "設定を、あなたの Google ドライブ内のこのアプリ専用の非表示フォルダに保存して、端末間で同期します。Sivry のサーバーには保存されません。Google へのログインは同期のためだけに使い、このフォルダ以外のファイルは読めません。": "Sine-save ang iyong mga setting sa nakatagong folder na para lang sa app sa sarili mong Google Drive at isi-sync sa iba't ibang device. Walang nakaimbak sa mga server ng Sivry. Ang Google sign-in ay para lang sa pag-sync, at hindi mababasa ng Sivry ang mga file sa labas ng folder na iyon.",
+  "Google でログインして同期": "Mag-sign in sa Google para mag-sync",
+  "今すぐ同期": "I-sync ngayon",
+  "同期をやめる": "Itigil ang pag-sync",
+  "ドライブの保存データを削除": "Burahin ang data na naka-save sa Drive",
+  "同期しました": "Na-sync",
+  "同期できませんでした": "Hindi makapag-sync",
+  "ドライブの設定と、この端末の設定が異なります。ドライブの設定を使いますか？（キャンセルでこの端末の設定をドライブに上書きします）": "Iba ang mga setting sa Drive sa mga setting sa device na ito. Gamitin ang mga setting mula sa Drive? (Ang Cancel ay papalitan ang Drive ng mga setting ng device na ito.)",
+  "同期は有効です。最終同期: {time}": "Naka-on ang pag-sync. Huling na-sync: {time}",
+  "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Burahin ang data na naka-save sa Drive? Mananatili ang mga setting sa device na ito.",
+  "ドライブの設定を読み込みました": "Na-load ang mga setting mula sa Drive",
+  "削除しました": "Nabura"
 }

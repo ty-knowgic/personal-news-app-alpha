@@ -232,5 +232,7 @@
   "同期は有効です。最終同期: {time}": "Naka-on ang pag-sync. Huling na-sync: {time}",
   "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Burahin ang data na naka-save sa Drive? Mananatili ang mga setting sa device na ito.",
   "ドライブの設定を読み込みました": "Na-load ang mga setting mula sa Drive",
-  "削除しました": "Nabura"
+  "削除しました": "Nabura",
+  "新着": "Bago",
+  "ここまでです。新しい発表があると、ここに追加されます。": "Iyan na lahat. Lalabas dito ang mga bagong labas."
 }

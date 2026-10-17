@@ -226,5 +226,7 @@
   "同期は有効です。最終同期: {time}": "Penyegerakan aktif. Terakhir disegerakkan: {time}",
   "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Padam data yang disimpan di Drive? Tetapan pada peranti ini dikekalkan.",
   "ドライブの設定を読み込みました": "Tetapan dari Drive dimuatkan",
-  "削除しました": "Dipadam"
+  "削除しました": "Dipadam",
+  "新着": "Baharu",
+  "ここまでです。新しい発表があると、ここに追加されます。": "Itu sahaja. Keluaran baharu akan muncul di sini."
 }

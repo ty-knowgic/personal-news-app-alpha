@@ -253,5 +253,7 @@
   "同期は有効です。最終同期: {time}": "Sincronización activada. Última sincronización: {time}",
   "ドライブの保存データを削除しますか？この端末の設定は残ります。": "¿Eliminar los datos guardados en Drive? Los ajustes de este dispositivo se conservan.",
   "ドライブの設定を読み込みました": "Ajustes cargados desde Drive",
-  "削除しました": "Eliminado"
+  "削除しました": "Eliminado",
+  "新着": "Nuevo",
+  "ここまでです。新しい発表があると、ここに追加されます。": "Eso es todo. Las nuevas publicaciones aparecerán aquí."
 }

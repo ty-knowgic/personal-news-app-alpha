@@ -258,5 +258,7 @@
   "同期は有効です。最終同期: {time}": "Sync is on. Last synced: {time}",
   "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Delete the data saved in Drive? Settings on this device are kept.",
   "ドライブの設定を読み込みました": "Loaded settings from Drive",
-  "削除しました": "Deleted"
+  "削除しました": "Deleted",
+  "新着": "New",
+  "ここまでです。新しい発表があると、ここに追加されます。": "That's everything. New releases will appear here."
 }

@@ -226,5 +226,7 @@
   "同期は有効です。最終同期: {time}": "Sinkronisasi aktif. Terakhir disinkronkan: {time}",
   "ドライブの保存データを削除しますか？この端末の設定は残ります。": "Hapus data yang tersimpan di Drive? Pengaturan di perangkat ini tetap ada.",
   "ドライブの設定を読み込みました": "Pengaturan dari Drive dimuat",
-  "削除しました": "Dihapus"
+  "削除しました": "Dihapus",
+  "新着": "Baru",
+  "ここまでです。新しい発表があると、ここに追加されます。": "Hanya itu. Rilis baru akan muncul di sini."
 }

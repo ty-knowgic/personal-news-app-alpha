@@ -8,6 +8,7 @@ const listView = document.getElementById('listView');
 const newsList = document.getElementById('newsList');
 const listEnd = document.getElementById('listEnd');
 const moreButton = document.getElementById('moreButton');
+const endNote = document.getElementById('endNote');
 const status = document.getElementById('status');
 const detailView = document.getElementById('detailView');
 const backButton = document.getElementById('backButton');
@@ -53,6 +54,8 @@ const STORAGE_KEY = 'personal-news:list-state';
 const FEEDBACK_URL = 'https://github.com/ty-knowgic/sivry-app/issues/new';
 const HIDDEN_LIMIT = 300;
 const IMAGES_KEY = 'sivry:images';
+const VISIT_KEY = 'sivry:visit';
+const VISIT_GAP = 30 * 60 * 1000;
 
 // 記事の画像は発信元のサーバーから直接読み込まれ、閲覧していることが発信元に伝わる（IP アドレスなど）。そのため、初期状態では表示しない
 function imagesOn() {
@@ -396,6 +399,27 @@ function renderHero(item) {
   `;
 }
 
+/**
+ * 前回開いた時刻。30分以内に開き直したときは同じ訪問として扱い、新着の印が消えないようにする。
+ * 初めての訪問は 0（印は付けない）。端末の中にだけ保存する
+ */
+const lastVisit = (() => {
+  const now = Date.now();
+  try {
+    const saved = JSON.parse(localStorage.getItem(VISIT_KEY)) ?? {};
+    const sameVisit = saved.current && now - saved.current < VISIT_GAP;
+    const record = sameVisit ? { prev: saved.prev ?? 0, current: now } : { prev: saved.current ?? 0, current: now };
+    localStorage.setItem(VISIT_KEY, JSON.stringify(record));
+    return record.prev;
+  } catch {
+    return 0;
+  }
+})();
+
+function isNewSinceVisit(item) {
+  return lastVisit > 0 && Date.parse(item.publishedAt) > lastVisit;
+}
+
 function renderCard(item) {
   const category = primaryCategory(item);
   const image = articleImage(item);
@@ -415,6 +439,7 @@ function renderCard(item) {
         <h3 class="card-title">${escapeHtml(displayTitle(item))}</h3>
         ${cardSummary(item)}
         <div class="card-foot">
+          ${isNewSinceVisit(item) ? `<span class="new-badge">${escapeHtml(t('新着'))}</span>` : ''}
           <time datetime="${escapeHtml(item.publishedAt)}">${escapeHtml(formatRelative(item.publishedAt))}</time>
           ${matchChips(item)}
         </div>
@@ -463,6 +488,7 @@ function renderNews() {
         ? `<div class="empty-state"><strong>${escapeHtml(t('関心に一致する記事がまだありません'))}</strong>${escapeHtml(t('{link}で関心トピックやキーワードを追加できます。', { link: '\u0000' })).replace('\u0000', settingsLink)}</div>`
         : `<div class="empty-state"><strong>${escapeHtml(t('まだ記事がありません'))}</strong>${escapeHtml(t('{scope}の新しい発表が出ると、ここに表示されます。', { scope }))}</div>`;
     moreButton.hidden = true;
+    updateEndNote();
     return;
   }
 
@@ -473,6 +499,12 @@ function renderNews() {
     ? `${briefingHtml}<h2 class="day-heading">${escapeHtml(t('すべてのマイニュース'))}</h2>${rendered.html}`
     : rendered.html;
   moreButton.hidden = state.items.length >= state.total;
+  updateEndNote();
+}
+
+// 最後まで表示したら「ここまで」と伝える（終わりのある体験）
+function updateEndNote() {
+  endNote.hidden = !(state.items.length > 0 && state.items.length >= state.total);
 }
 
 function renderSkeleton() {
@@ -488,6 +520,7 @@ function renderSkeleton() {
     </div>
   `).join('');
   moreButton.hidden = true;
+  endNote.hidden = true;
 }
 
 async function fetchNewsPage(offset) {
@@ -550,6 +583,7 @@ async function loadMore() {
     lastRenderedDay = rendered.lastDay;
     newsList.insertAdjacentHTML('beforeend', rendered.html);
     moreButton.hidden = state.items.length >= state.total;
+    updateEndNote();
   } catch {
     // 失敗時はボタンから再試行できるようにする
   } finally {

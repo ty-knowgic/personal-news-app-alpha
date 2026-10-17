@@ -48,7 +48,7 @@ jobs:
       - run: npm run test:onboarding
 
       # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
-      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data
           key: state-${{ github.run_id }}

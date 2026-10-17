@@ -138,7 +138,6 @@
   "記事を読み込めませんでした": "Der Artikel konnte nicht geladen werden",
   "通信状況を確認してください。": "Bitte prüfen Sie Ihre Verbindung.",
   "リンクをコピーしました": "Link kopiert",
-  "質問 {step} / 2": "Frage {step} / 2",
   "どの国・地域の情報を受け取りますか？": "Aus welchen Ländern und Regionen möchten Sie Nachrichten erhalten?",
   "どの分野を柱にしますか？": "Welche Themen sollen im Mittelpunkt stehen?",
   "政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。": "Wir sammeln Primärinformationen, die Regierungen, Unternehmen, Forschungsinstitute und Organisationen selbst veröffentlichen. Artikel von Nachrichtenmedien sind nicht enthalten.",
@@ -255,5 +254,17 @@
   "ドライブの設定を読み込みました": "Einstellungen aus Drive geladen",
   "削除しました": "Gelöscht",
   "新着": "Neu",
-  "ここまでです。新しい発表があると、ここに追加されます。": "Das war alles. Neue Veröffentlichungen erscheinen hier."
+  "ここまでです。新しい発表があると、ここに追加されます。": "Das war alles. Neue Veröffentlichungen erscheinen hier.",
+  "更新: {time}": "Aktualisiert {time}",
+  "質問 {step} / 3": "Frage {step} / 3",
+  "半導体・量子": "Halbleiter & Quanten",
+  "サイバーセキュリティ": "Cybersicherheit",
+  "経済・金融政策": "Wirtschaft & Geldpolitik",
+  "貿易・サプライチェーン": "Handel & Lieferketten",
+  "医療・公衆衛生": "Gesundheit & Medizin",
+  "気候・エネルギー": "Klima & Energie",
+  "宇宙・天文": "Raumfahrt & Astronomie",
+  "安全保障・防衛": "Sicherheit & Verteidigung",
+  "どのテーマに関心がありますか？": "Welche Themen interessieren Sie?",
+  "選んだテーマに合う発表が、マイニュースに並びます。": "Veröffentlichungen zu den gewählten Themen erscheinen in Meine Nachrichten."
 }

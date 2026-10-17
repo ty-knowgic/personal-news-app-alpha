@@ -544,7 +544,13 @@ function updateStatus() {
   const sampleOnly = state.items.length > 0 && state.items.every(item => item.isSample);
   status.textContent = sampleOnly
     ? t('公式フィードを取得できなかったため、サンプルを表示しています')
-    : `${t('{n}件', { n: state.total.toLocaleString(locale()), count: state.total })}${state.keyword ? t('・「{keyword}」', { keyword: state.keyword }) : ''}`;
+    : `${t('{n}件', { n: state.total.toLocaleString(locale()), count: state.total })}${state.keyword ? t('・「{keyword}」', { keyword: state.keyword }) : ''}${updatedLabel()}`;
+}
+
+/** データを最後に取り込んだ時刻（静的版のみ）。古いままになっていないことを示す */
+function updatedLabel() {
+  const ago = state.config?.generatedAt ? formatRelative(state.config.generatedAt) : '';
+  return ago ? `・${t('更新: {time}', { time: ago })}` : '';
 }
 
 async function refreshNews() {
@@ -1017,13 +1023,15 @@ const CHECK_ICON = '<svg class="choice-check" viewBox="0 0 24 24" aria-hidden="t
 function renderChoiceGrid(kind, selected) {
   const options = kind === 'regions'
     ? choiceOptions.regions.map(option => ({ value: option.value, info: REGION_INFO[option.value], meta: t('情報源 {n}', { n: option.sources }) }))
-    : choiceOptions.categories.map(option => ({ value: option.value, info: CATEGORY_INFO[option.value], meta: t('30日で{n}件', { n: option.articles }) }));
+    : kind === 'topics'
+      ? choiceOptions.topics.map(option => ({ value: option.value, label: option.label, info: '', meta: '' }))
+      : choiceOptions.categories.map(option => ({ value: option.value, info: CATEGORY_INFO[option.value], meta: t('30日で{n}件', { n: option.articles }) }));
   return `
     <div class="choice-grid" data-kind="${kind}">
       ${options.map(option => `
         <button class="choice" type="button" data-value="${escapeHtml(option.value)}" ${kind === 'categories' ? `data-cat="${escapeHtml(option.value)}"` : ''} aria-pressed="${selected.includes(option.value)}">
           <span class="choice-text">
-            <span class="choice-label">${escapeHtml(t(option.value))}</span>
+            <span class="choice-label">${escapeHtml(t(option.label ?? option.value))}</span>
             <span class="choice-info">${escapeHtml(option.info ? t(option.info) : '')}</span>
             <span class="choice-meta">${escapeHtml(option.meta)}</span>
           </span>
@@ -1045,26 +1053,33 @@ function toggleChoice(button, selected) {
 
 // ---------- 初回の質問 ----------
 
-const onboarding = { step: 1, regions: [], categories: [] };
+// 質問の順番と、選んだ値を入れる場所
+const ONBOARDING_STEPS = ['regions', 'categories', 'topics'];
+const onboarding = { step: 1, regions: [], categories: [], topics: [] };
 
 function renderOnboarding() {
-  const isRegions = onboarding.step === 1;
-  const selected = isRegions ? onboarding.regions : onboarding.categories;
-  const all = (isRegions ? choiceOptions.regions : choiceOptions.categories).map(option => option.value);
+  const key = ONBOARDING_STEPS[onboarding.step - 1];
+  const last = onboarding.step === ONBOARDING_STEPS.length;
+  const selected = onboarding[key];
+  const all = choiceOptions[key].map(option => option.value);
+  const title = { regions: t('どの国・地域の情報を受け取りますか？'), categories: t('どの分野を柱にしますか？'), topics: t('どのテーマに関心がありますか？') }[key];
+  const lead = {
+    regions: t('政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。'),
+    categories: t('選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。'),
+    topics: t('選んだテーマに合う発表が、マイニュースに並びます。')
+  }[key];
   onboardingView.innerHTML = `
     <div class="onb-inner">
       <div class="onb-language">${renderLanguageSelect()}</div>
-      <div class="onb-progress" aria-hidden="true"><span class="is-active"></span><span class="${isRegions ? '' : 'is-active'}"></span></div>
-      <p class="onb-step">${escapeHtml(t('質問 {step} / 2', { step: onboarding.step }))}</p>
-      <h1 class="onb-title">${escapeHtml(isRegions ? t('どの国・地域の情報を受け取りますか？') : t('どの分野を柱にしますか？'))}</h1>
-      <p class="onb-lead">${escapeHtml(isRegions
-        ? t('政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。')
-        : t('選んだ分野がタブになります。マイニュースには、分野に関係なく関心トピックに一致する発表を表示します。'))}${escapeHtml(t('複数選べます。'))}</p>
+      <div class="onb-progress" aria-hidden="true">${ONBOARDING_STEPS.map((_, index) => `<span class="${index < onboarding.step ? 'is-active' : ''}"></span>`).join('')}</div>
+      <p class="onb-step">${escapeHtml(t('質問 {step} / 3', { step: onboarding.step }))}</p>
+      <h1 class="onb-title">${escapeHtml(title)}</h1>
+      <p class="onb-lead">${escapeHtml(lead)}${escapeHtml(t('複数選べます。'))}</p>
       <button class="text-button onb-all" type="button" data-action="select-all">${escapeHtml(selected.length === all.length ? t('すべて解除') : t('すべて選択'))}</button>
-      ${renderChoiceGrid(isRegions ? 'regions' : 'categories', selected)}
+      ${renderChoiceGrid(key, selected)}
       <div class="onb-actions">
-        ${isRegions ? '' : `<button class="secondary-button" type="button" data-action="back">${escapeHtml(t('戻る'))}</button>`}
-        <button class="primary-action" type="button" data-action="next" ${selected.length ? '' : 'disabled'}>${escapeHtml(isRegions ? t('次へ') : t('はじめる'))}</button>
+        ${onboarding.step > 1 ? `<button class="secondary-button" type="button" data-action="back">${escapeHtml(t('戻る'))}</button>` : ''}
+        <button class="primary-action" type="button" data-action="next" ${selected.length ? '' : 'disabled'}>${escapeHtml(last ? t('はじめる') : t('次へ'))}</button>
       </div>
       <p class="onb-note">${escapeHtml(t('あとから設定でいつでも変更できます。'))}</p>
     </div>
@@ -1093,7 +1108,7 @@ onboardingView.addEventListener('change', (event) => {
 });
 
 onboardingView.addEventListener('click', async (event) => {
-  const key = onboarding.step === 1 ? 'regions' : 'categories';
+  const key = ONBOARDING_STEPS[onboarding.step - 1];
   const choice = event.target.closest('.choice');
   if (choice) {
     onboarding[key] = toggleChoice(choice, onboarding[key]);
@@ -1106,11 +1121,11 @@ onboardingView.addEventListener('click', async (event) => {
     onboarding[key] = onboarding[key].length === all.length ? [] : all;
     renderOnboarding();
   } else if (action === 'back') {
-    onboarding.step = 1;
+    onboarding.step = Math.max(1, onboarding.step - 1);
     renderOnboarding();
   } else if (action === 'next' && onboarding[key].length) {
-    if (onboarding.step === 1) {
-      onboarding.step = 2;
+    if (onboarding.step < ONBOARDING_STEPS.length) {
+      onboarding.step += 1;
       renderOnboarding();
       window.scrollTo(0, 0);
       return;
@@ -1121,7 +1136,14 @@ onboardingView.addEventListener('click', async (event) => {
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...profile, onboarded: true, regions: onboarding.regions, categories: onboarding.categories })
+        body: JSON.stringify({
+          ...profile,
+          onboarded: true,
+          regions: onboarding.regions,
+          categories: onboarding.categories,
+          // 選んだテーマだけを有効にする（それ以外のトピックは設定から有効にできる）
+          topics: profile.topics.map(topic => ({ ...topic, enabled: onboarding.topics.includes(topic.id) }))
+        })
       });
       if (!response.ok) throw new Error('save');
       state.needsOnboarding = false;

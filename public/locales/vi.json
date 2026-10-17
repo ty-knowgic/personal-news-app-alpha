@@ -117,7 +117,6 @@
   "記事を読み込めませんでした": "Không tải được bài",
   "通信状況を確認してください。": "Vui lòng kiểm tra kết nối.",
   "リンクをコピーしました": "Đã sao chép liên kết",
-  "質問 {step} / 2": "Câu hỏi {step} / 2",
   "どの国・地域の情報を受け取りますか？": "Bạn muốn nhận tin từ những quốc gia và khu vực nào?",
   "どの分野を柱にしますか？": "Bạn muốn tập trung vào những lĩnh vực nào?",
   "政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。": "Chúng tôi thu thập thông tin gốc do chính phủ, doanh nghiệp, viện nghiên cứu và tổ chức trực tiếp công bố. Bài viết của cơ quan báo chí không được đưa vào.",
@@ -228,5 +227,17 @@
   "ドライブの設定を読み込みました": "Đã tải cài đặt từ Drive",
   "削除しました": "Đã xóa",
   "新着": "Mới",
-  "ここまでです。新しい発表があると、ここに追加されます。": "Hết rồi. Thông báo mới sẽ xuất hiện ở đây."
+  "ここまでです。新しい発表があると、ここに追加されます。": "Hết rồi. Thông báo mới sẽ xuất hiện ở đây.",
+  "更新: {time}": "Cập nhật {time}",
+  "質問 {step} / 3": "Câu hỏi {step} / 3",
+  "半導体・量子": "Bán dẫn & lượng tử",
+  "サイバーセキュリティ": "An ninh mạng",
+  "経済・金融政策": "Kinh tế & chính sách tiền tệ",
+  "貿易・サプライチェーン": "Thương mại & chuỗi cung ứng",
+  "医療・公衆衛生": "Y tế & sức khỏe cộng đồng",
+  "気候・エネルギー": "Khí hậu & năng lượng",
+  "宇宙・天文": "Vũ trụ & thiên văn",
+  "安全保障・防衛": "An ninh & quốc phòng",
+  "どのテーマに関心がありますか？": "Bạn quan tâm đến chủ đề nào?",
+  "選んだテーマに合う発表が、マイニュースに並びます。": "Các thông báo phù hợp với chủ đề bạn chọn sẽ hiện trong Tin của tôi."
 }

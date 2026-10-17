@@ -1,5 +1,5 @@
 import { filterNews, listCategoryGroups, listFilterOptions, withPrimaryCategory } from './newsFilters.js';
-import { matchTopics, rankForYou } from './profile.js';
+import { DEFAULT_PROFILE, matchTopics, rankForYou, STARTER_TOPIC_IDS } from './profile.js';
 import type { Profile } from './profile.js';
 import { buildStoryIndex, findRelated, groupStories } from './stories.js';
 import { cleanFeedText } from './text.js';
@@ -229,7 +229,12 @@ export function filterChoices(profile: Profile) {
 export function onboardingOptions(ctx: ApiContext) {
   return {
     regions: SUBGROUPS.map(region => ({ value: region, sources: ctx.sources.filter(source => source.subgroup === region).length })),
-    categories: CATEGORIES.map(category => ({ value: category, articles: ctx.items.filter(item => item.categories.includes(category)).length }))
+    categories: CATEGORIES.map(category => ({ value: category, articles: ctx.items.filter(item => item.categories.includes(category)).length })),
+    // 初回の質問で選べるテーマ（マイニュースの関心トピックになる）
+    topics: STARTER_TOPIC_IDS.flatMap((id) => {
+      const topic = DEFAULT_PROFILE.topics.find(candidate => candidate.id === id);
+      return topic ? [{ value: topic.id, label: topic.label }] : [];
+    })
   };
 }
 

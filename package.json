@@ -13,7 +13,8 @@
     "check:locales": "node scripts/check-locales.mjs",
     "test:xss": "node scripts/test-xss.mjs",
     "test:sync": "node scripts/test-sync.mjs",
-    "test:visit": "node scripts/test-visit.mjs"
+    "test:visit": "node scripts/test-visit.mjs",
+    "test:onboarding": "node scripts/test-onboarding.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",

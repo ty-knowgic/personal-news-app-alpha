@@ -117,7 +117,6 @@
   "記事を読み込めませんでした": "Tidak dapat memuatkan artikel",
   "通信状況を確認してください。": "Sila semak sambungan anda.",
   "リンクをコピーしました": "Pautan disalin",
-  "質問 {step} / 2": "Soalan {step} / 2",
   "どの国・地域の情報を受け取りますか？": "Berita dari negara dan wilayah mana yang anda mahu terima?",
   "どの分野を柱にしますか？": "Topik apakah yang menjadi tumpuan utama anda?",
   "政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。": "Kami mengumpulkan maklumat primer yang diterbitkan terus oleh kerajaan, syarikat, institut penyelidikan dan organisasi. Artikel media berita tidak disertakan.",
@@ -228,5 +227,17 @@
   "ドライブの設定を読み込みました": "Tetapan dari Drive dimuatkan",
   "削除しました": "Dipadam",
   "新着": "Baharu",
-  "ここまでです。新しい発表があると、ここに追加されます。": "Itu sahaja. Keluaran baharu akan muncul di sini."
+  "ここまでです。新しい発表があると、ここに追加されます。": "Itu sahaja. Keluaran baharu akan muncul di sini.",
+  "更新: {time}": "Dikemas kini {time}",
+  "質問 {step} / 3": "Soalan {step} / 3",
+  "半導体・量子": "Semikonduktor & kuantum",
+  "サイバーセキュリティ": "Keselamatan siber",
+  "経済・金融政策": "Ekonomi & dasar kewangan",
+  "貿易・サプライチェーン": "Perdagangan & rantaian bekalan",
+  "医療・公衆衛生": "Kesihatan & perubatan",
+  "気候・エネルギー": "Iklim & tenaga",
+  "宇宙・天文": "Angkasa & astronomi",
+  "安全保障・防衛": "Keselamatan & pertahanan",
+  "どのテーマに関心がありますか？": "Topik apakah yang anda minati?",
+  "選んだテーマに合う発表が、マイニュースに並びます。": "Keluaran yang sepadan dengan topik pilihan anda muncul dalam Berita Saya."
 }

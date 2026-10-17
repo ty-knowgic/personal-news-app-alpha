@@ -120,7 +120,6 @@
   "記事を読み込めませんでした": "Hindi ma-load ang artikulo",
   "通信状況を確認してください。": "Pakitingnan ang iyong koneksyon.",
   "リンクをコピーしました": "Nakopya ang link",
-  "質問 {step} / 2": "Tanong {step} / 2",
   "どの国・地域の情報を受け取りますか？": "Mula sa anong mga bansa at rehiyon mo gustong makatanggap ng balita?",
   "どの分野を柱にしますか？": "Anong mga paksa ang gusto mong pagtuunan?",
   "政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。": "Kinokolekta namin ang pangunahing impormasyong direktang inilathala ng mga gobyerno, kumpanya, institusyon ng pananaliksik, at organisasyon. Hindi kasama ang mga artikulo ng news media.",
@@ -234,5 +233,17 @@
   "ドライブの設定を読み込みました": "Na-load ang mga setting mula sa Drive",
   "削除しました": "Nabura",
   "新着": "Bago",
-  "ここまでです。新しい発表があると、ここに追加されます。": "Iyan na lahat. Lalabas dito ang mga bagong labas."
+  "ここまでです。新しい発表があると、ここに追加されます。": "Iyan na lahat. Lalabas dito ang mga bagong labas.",
+  "更新: {time}": "Na-update {time}",
+  "質問 {step} / 3": "Tanong {step} / 3",
+  "半導体・量子": "Semiconductor at quantum",
+  "サイバーセキュリティ": "Cybersecurity",
+  "経済・金融政策": "Ekonomiya at patakarang pananalapi",
+  "貿易・サプライチェーン": "Kalakalan at supply chain",
+  "医療・公衆衛生": "Kalusugan at medisina",
+  "気候・エネルギー": "Klima at enerhiya",
+  "宇宙・天文": "Kalawakan at astronomiya",
+  "安全保障・防衛": "Seguridad at depensa",
+  "どのテーマに関心がありますか？": "Anong mga paksa ang interesado ka?",
+  "選んだテーマに合う発表が、マイニュースに並びます。": "Lalabas sa Aking Balita ang mga labas na tugma sa mga paksang pipiliin mo."
 }

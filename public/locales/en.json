@@ -140,7 +140,6 @@
   "記事を読み込めませんでした": "Could not load the article",
   "通信状況を確認してください。": "Please check your connection.",
   "リンクをコピーしました": "Link copied",
-  "質問 {step} / 2": "Question {step} / 2",
   "どの国・地域の情報を受け取りますか？": "Which countries and regions do you want news from?",
   "どの分野を柱にしますか？": "Which topics should be your main focus?",
   "政府・自治体、企業、研究機関、団体が自ら発表した一次情報を集めます。報道機関の記事は含みません。": "We collect primary information published directly by governments, companies, research institutes and organizations. News media articles are not included.",
@@ -260,5 +259,17 @@
   "ドライブの設定を読み込みました": "Loaded settings from Drive",
   "削除しました": "Deleted",
   "新着": "New",
-  "ここまでです。新しい発表があると、ここに追加されます。": "That's everything. New releases will appear here."
+  "ここまでです。新しい発表があると、ここに追加されます。": "That's everything. New releases will appear here.",
+  "更新: {time}": "Updated {time}",
+  "質問 {step} / 3": "Question {step} / 3",
+  "半導体・量子": "Semiconductors & quantum",
+  "サイバーセキュリティ": "Cybersecurity",
+  "経済・金融政策": "Economy & monetary policy",
+  "貿易・サプライチェーン": "Trade & supply chains",
+  "医療・公衆衛生": "Health & medicine",
+  "気候・エネルギー": "Climate & energy",
+  "宇宙・天文": "Space & astronomy",
+  "安全保障・防衛": "Security & defense",
+  "どのテーマに関心がありますか？": "Which topics interest you?",
+  "選んだテーマに合う発表が、マイニュースに並びます。": "Releases that match the topics you pick appear in My News."
 }

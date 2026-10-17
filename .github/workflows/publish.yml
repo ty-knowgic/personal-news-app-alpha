@@ -44,6 +44,9 @@ jobs:
       # 「新着」の印と「ここまで」の表示を確かめる
       - run: npm run test:visit
 
+      # 初回の質問（地域・分野・テーマ）の流れと、選んだテーマの保存を確かめる
+      - run: npm run test:onboarding
+
       # 蓄積中の記事・要約・ベクトル（直近30日分）を前回から引き継ぐ。無い場合は、いまフィードにある記事から作り直す
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
